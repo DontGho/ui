@@ -2518,12 +2518,18 @@ local Library do
                     end
                 end
                 
-                NewTween.Tween.Completed:Connect(function()
-                    Debounce = false 
+                if NewTween and NewTween.Tween then
+                    NewTween.Tween.Completed:Connect(function()
+                        Debounce = false 
+                        Items["OptionHolder"].Instance.Visible = Dropdown.IsOpen
+                        task.wait(0.2)
+                        Items["OptionHolder"].Instance.Parent = not Dropdown.IsOpen and Library.UnusedHolder.Instance or Library.Holder.Instance
+                    end)
+                else
+                    Debounce = false
                     Items["OptionHolder"].Instance.Visible = Dropdown.IsOpen
-                    task.wait(0.2)
                     Items["OptionHolder"].Instance.Parent = not Dropdown.IsOpen and Library.UnusedHolder.Instance or Library.Holder.Instance
-                end)
+                end
             end
 
             function Dropdown:SetVisibility(Bool)
@@ -3678,12 +3684,18 @@ local Library do
                     end
                 end
                 
-                NewTween.Tween.Completed:Connect(function()
-                    Debounce = false 
+                if NewTween and NewTween.Tween then
+                    NewTween.Tween.Completed:Connect(function()
+                        Debounce = false 
+                        Items["ColorpickerWindow"].Instance.Visible = Colorpicker.IsOpen
+                        task.wait(0.2)
+                        Items["ColorpickerWindow"].Instance.Parent = not Colorpicker.IsOpen and Library.UnusedHolder.Instance or Library.Holder.Instance
+                    end)
+                else
+                    Debounce = false
                     Items["ColorpickerWindow"].Instance.Visible = Colorpicker.IsOpen
-                    task.wait(0.2)
                     Items["ColorpickerWindow"].Instance.Parent = not Colorpicker.IsOpen and Library.UnusedHolder.Instance or Library.Holder.Instance
-                end)
+                end
             end
 
             UpdateSync = function(Bool)
@@ -4196,12 +4208,18 @@ local Library do
                     end
                 end
                 
-                NewTween.Tween.Completed:Connect(function()
-                    Debounce = false 
+                if NewTween and NewTween.Tween then
+                    NewTween.Tween.Completed:Connect(function()
+                        Debounce = false 
+                        Items["KeybindWindow"].Instance.Visible = Keybind.IsOpen
+                        task.wait(0.2)
+                        Items["KeybindWindow"].Instance.Parent = not Keybind.IsOpen and Library.UnusedHolder.Instance or Library.Holder.Instance
+                    end)
+                else
+                    Debounce = false
                     Items["KeybindWindow"].Instance.Visible = Keybind.IsOpen
-                    task.wait(0.2)
                     Items["KeybindWindow"].Instance.Parent = not Keybind.IsOpen and Library.UnusedHolder.Instance or Library.Holder.Instance
-                end)
+                end
             end
 
             function Keybind:SetMode(Mode)
@@ -5048,9 +5066,15 @@ local Library do
                     NewKey.Instance.Visible = true
                     NewKey:Tween(nil, {TextTransparency = 0, Size = UDim2New(1, 0, 0, 15)})
                 else
-                    NewKey:Tween(nil, {TextTransparency = 1, Size = UDim2New(1, 0, 0, 0)}).Tween.Completed:Connect(function()
+                    local KeyTween = NewKey:Tween(nil, {TextTransparency = 1, Size = UDim2New(1, 0, 0, 0)})
+
+                    if KeyTween and KeyTween.Tween then
+                        KeyTween.Tween.Completed:Connect(function()
+                            NewKey.Instance.Visible = false
+                        end)
+                    else
                         NewKey.Instance.Visible = false
-                    end)
+                    end
                 end
             end
 
@@ -5466,8 +5490,20 @@ local Library do
                 end
             end
             
-            NewTween.Tween.Completed:Connect(function()
-                Debounce = false 
+            if NewTween and NewTween.Tween then
+                NewTween.Tween.Completed:Connect(function()
+                    Debounce = false 
+                    Items["Window"].Instance.Visible = Window.IsOpen
+                    if Window.IsOpen then
+                        Items["MouseBackground"].Instance.Visible = true
+                        UserInputService.MouseIconEnabled = false
+                    else
+                        Items["MouseBackground"].Instance.Visible = false
+                        UserInputService.MouseIconEnabled = true
+                    end
+                end)
+            else
+                Debounce = false
                 Items["Window"].Instance.Visible = Window.IsOpen
                 if Window.IsOpen then
                     Items["MouseBackground"].Instance.Visible = true
@@ -5476,7 +5512,7 @@ local Library do
                     Items["MouseBackground"].Instance.Visible = false
                     UserInputService.MouseIconEnabled = true
                 end
-            end)
+            end
         end
 
         Library:Connect(UserInputService.InputBegan, function(Input)
@@ -5521,11 +5557,17 @@ local Library do
                         0
                     )
 
-                    Element:Tween(TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = HiddenSize}).Tween.Completed:Connect(function()
-                        if Element.Instance and not (Query == "" or StringFind(StringLower(tostring(Value.Name or "")), StringLower(Items["Input"].Instance.Text or ""), 1, true) ~= nil) then
-                            Element.Instance.Visible = false
-                        end
-                    end)
+                    local HideTween = Element:Tween(TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = HiddenSize})
+
+                    if HideTween and HideTween.Tween then
+                        HideTween.Tween.Completed:Connect(function()
+                            if Element.Instance and not (Query == "" or StringFind(StringLower(tostring(Value.Name or "")), StringLower(Items["Input"].Instance.Text or ""), 1, true) ~= nil) then
+                                Element.Instance.Visible = false
+                            end
+                        end)
+                    elseif Element.Instance then
+                        Element.Instance.Visible = false
+                    end
                 end
             end
         end
