@@ -68,7 +68,7 @@ local Library do
     Library = {
         Theme =  { },
 
-        MenuKeybind = tostring(Enum.KeyCode.RightControl), 
+        MenuKeybind = tostring(Enum.KeyCode.Delete), 
         Flags = { },
 
         Tween = {
@@ -1385,30 +1385,7 @@ local Library do
                     Items["Text"]:Tween(nil, {Position = UDim2New(0, 8, 0.5, 0)})
                 end
 
-                local AllInstances = Items["Page"].Instance:GetDescendants()
-                TableInsert(AllInstances, Items["Page"].Instance)
-                
-                local NewTween 
-
-                for Index, Value in AllInstances do 
-                    local TransparencyProperty = Tween:GetProperty(Value)
-
-                    if not TransparencyProperty then 
-                        continue
-                    end
-
-                    if type(TransparencyProperty) == "table" then 
-                        for _, Property in TransparencyProperty do 
-                            NewTween = Tween:FadeItem(Value, Property, Bool, Data.Window.FadeTime)
-                        end
-                    else
-                        NewTween = Tween:FadeItem(Value, TransparencyProperty, Bool, Data.Window.FadeTime)
-                    end
-                end
-
-                Library:Connect(NewTween.Tween.Completed, function()
-                    Debounce = false
-                end)
+                Debounce = false
             end
 
             Items["Inactive"]:Connect("MouseButton1Down", function()
@@ -1626,30 +1603,7 @@ local Library do
                     Items["Text"]:Tween(nil, {Position = UDim2New(0.5, -5, 0.5, 0)})
                 end
 
-                local AllInstances = Items["Page"].Instance:GetDescendants()
-                TableInsert(AllInstances, Items["Page"].Instance)
-
-                local NewTween 
-
-                for Index, Value in AllInstances do 
-                    local TransparencyProperty = Tween:GetProperty(Value)
-
-                    if not TransparencyProperty then 
-                        continue
-                    end
-
-                    if type(TransparencyProperty) == "table" then 
-                        for _, Property in TransparencyProperty do 
-                            NewTween = Tween:FadeItem(Value, Property, Bool, Data.Window.FadeTime)
-                        end
-                    else
-                        NewTween = Tween:FadeItem(Value, TransparencyProperty, Bool, Data.Window.FadeTime)
-                    end
-                end
-
-                Library:Connect(NewTween.Tween.Completed, function()
-                    Debounce = false
-                end)
+                Debounce = false
             end
 
             Items["Inactive"]:Connect("MouseButton1Down", function()
@@ -4074,8 +4028,10 @@ local Library do
 
             local Update = function()
                 if KeylistItem then
-                    KeylistItem:SetText(Keybind.Value, Data.Name, Keybind.Mode)
-                    KeylistItem:SetStatus(Keybind.Toggled)
+                    local HasKeybind = Keybind.Value ~= nil and Keybind.Value ~= "" and Keybind.Value ~= "None"
+
+                    KeylistItem:SetText(HasKeybind and Keybind.Value or "", Data.Name, Keybind.Mode)
+                    KeylistItem:SetStatus(HasKeybind)
                 end
             end
 
@@ -5387,6 +5343,7 @@ local Library do
                 BorderColor3 = FromRGB(0, 0, 0),
                 Size = UDim2New(0, 16, 0, 16),
                 BorderSizePixel = 0,
+                Visible = false,
                 ZIndex = 9999,
                 BackgroundColor3 = FromRGB(255, 255, 255)
             })
@@ -5410,7 +5367,8 @@ local Library do
                 Color = RGBSequence{RGBSequenceKeypoint(0, FromRGB(255, 255, 255)), RGBSequenceKeypoint(1, FromRGB(99, 108, 117))}
             })
 
-            UserInputService.MouseIconEnabled = false
+            UserInputService.MouseIconEnabled = true
+            UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 
             Window.Items = Items
         end
@@ -5494,23 +5452,19 @@ local Library do
                 NewTween.Tween.Completed:Connect(function()
                     Debounce = false 
                     Items["Window"].Instance.Visible = Window.IsOpen
+                    Items["MouseBackground"].Instance.Visible = false
+                    UserInputService.MouseIconEnabled = true
                     if Window.IsOpen then
-                        Items["MouseBackground"].Instance.Visible = true
-                        UserInputService.MouseIconEnabled = false
-                    else
-                        Items["MouseBackground"].Instance.Visible = false
-                        UserInputService.MouseIconEnabled = true
+                        UserInputService.MouseBehavior = Enum.MouseBehavior.Default
                     end
                 end)
             else
                 Debounce = false
                 Items["Window"].Instance.Visible = Window.IsOpen
+                Items["MouseBackground"].Instance.Visible = false
+                UserInputService.MouseIconEnabled = true
                 if Window.IsOpen then
-                    Items["MouseBackground"].Instance.Visible = true
-                    UserInputService.MouseIconEnabled = false
-                else
-                    Items["MouseBackground"].Instance.Visible = false
-                    UserInputService.MouseIconEnabled = true
+                    UserInputService.MouseBehavior = Enum.MouseBehavior.Default
                 end
             end
         end
