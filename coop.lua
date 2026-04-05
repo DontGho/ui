@@ -3704,11 +3704,18 @@ local Library do
             end
 
             function Colorpicker:Set(Color, Alpha)
-                if type(Color) == "table" then
-                    Color = FromRGB(Color[1], Color[2], Color[3])
+                if typeof(Color) == "Color3" then
+                    Color = Color
+                elseif type(Color) == "table" then
                     Alpha = Color[4]
+                    Color = FromRGB(Color[1], Color[2], Color[3])
                 elseif type(Color) == "string" then
                     Color = FromHex(Color)
+                elseif type(Color) == "number" then
+                    Alpha = Color
+                    Color = Colorpicker.Color or FromRGB(255, 255, 255)
+                else
+                    Color = Colorpicker.Color or FromRGB(255, 255, 255)
                 end 
 
                 Colorpicker.Hue, Colorpicker.Saturation, Colorpicker.Value = Color:ToHSV()
