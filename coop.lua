@@ -1,9 +1,7 @@
 --[[
     scoot ui library
     made by samet
-    https://discord.gg/VhvTd5HV8d
-
-    example/documentation is at the bottom
+	modifications made for maxhub 
 ]]
 
 if Library then
@@ -225,18 +223,19 @@ local Library do
 
     local Themes = {
         ["Preset"] = {
-            ["Background"] = FromRGB(14, 17, 15),
-            ["Border"] = FromRGB(12, 12, 12),
-            ["Inline"] = FromRGB(20, 24, 21),
-            ["Hovered Element"] = FromRGB(37, 42, 45),
-            ["Page Background"] = FromRGB(25, 30, 26),
-            ["Outline"] = FromRGB(42, 49, 45),
-            ["Element"] = FromRGB(30, 36, 31),
-            ["Gradient"] = FromRGB(208, 208, 208),
-            ["Text"] = FromRGB(248, 250, 248),
+            ["Background"] = FromRGB(10, 12, 14),
+            ["BackgroundTransparency"] = 0,
+            ["Border"] = FromRGB(2, 2, 2),
+            ["Inline"] = FromRGB(18, 20, 24),
+            ["Hovered Element"] = FromRGB(32, 36, 42),
+            ["Page Background"] = FromRGB(15, 18, 22),
+            ["Outline"] = FromRGB(45, 50, 60),
+            ["Element"] = FromRGB(24, 28, 32),
+            ["Gradient"] = FromRGB(180, 190, 200),
+            ["Text"] = FromRGB(240, 245, 255),
             ["Text Stroke"] = FromRGB(0, 0, 0),
-            ["Placeholder Text"] = FromRGB(210, 214, 210),
-            ["Accent"] = FromRGB(202, 243, 255)
+            ["Placeholder Text"] = FromRGB(160, 170, 180),
+            ["Accent"] = FromRGB(255, 129, 129)
         }
     }
 
@@ -1131,6 +1130,27 @@ local Library do
                     BackgroundColor3 = FromRGB(14, 17, 15)
                 })  Items["Window"]:AddToTheme({BackgroundColor3 = "Background", BorderColor3 = "Border"})
 
+                Items["TopAccent"] = Instances:Create("Frame", {
+                    Parent = Items["Window"].Instance,
+                    Name = "\0",
+                    Size = UDim2New(1, 0, 0, 1),
+                    Position = UDim2New(0, 0, 0, 0),
+                    BorderSizePixel = 0,
+                    BackgroundColor3 = Library.Theme.Accent,
+                    ZIndex = 2
+                })  Items["TopAccent"]:AddToTheme({BackgroundColor3 = "Accent"})
+
+                Instances:Create("UIGradient", {
+                    Parent = Items["TopAccent"].Instance,
+                    Transparency = NumSequence{
+                        NumSequenceKeypoint(0, 1),
+                        NumSequenceKeypoint(0.2, 0),
+                        NumSequenceKeypoint(0.5, 0),
+                        NumSequenceKeypoint(0.8, 0),
+                        NumSequenceKeypoint(1, 1)
+                    }
+                })
+
                 if Data.Draggable then 
                     Items["Window"]:MakeDraggable()
                 end
@@ -1210,9 +1230,11 @@ local Library do
                 Items["Liner"] = Instances:Create("Frame", {
                     Parent = Items["Inactive"].Instance,
                     Name = "\0",
-                    BackgroundTransparency = 1,
+                    BackgroundTransparency = 0,
                     BorderColor3 = FromRGB(0, 0, 0),
-                    Size = UDim2New(0, 1, 1, 0),
+                    Size = UDim2New(0, 2, 0, 0),
+                    AnchorPoint = Vector2New(0, 0.5),
+                    Position = UDim2New(0, 0, 0.5, 0),
                     BorderSizePixel = 0,
                     BackgroundColor3 = FromRGB(25, 30, 26)
                 })  Items["Liner"]:AddToTheme({BackgroundColor3 = "Accent"})
@@ -1243,7 +1265,7 @@ local Library do
                     Name = "\0",
                     BackgroundTransparency = 1,
                     BorderColor3 = FromRGB(0, 0, 0),
-                    Size = UDim2New(0, 20, 1, 0),
+                    Size = UDim2New(0, 60, 1, 0),
                     BorderSizePixel = 0,
                     BackgroundColor3 = FromRGB(25, 30, 26)
                 })  Items["Glow"]:AddToTheme({BackgroundColor3 = "Accent"})
@@ -1251,7 +1273,24 @@ local Library do
                 Items["GlowGradient"] = Instances:Create("UIGradient", {
                     Parent = Items["Glow"].Instance,
                     Name = "\0",
-                    Transparency = NumSequence{NumSequenceKeypoint(0, 0), NumSequenceKeypoint(0.193, 0.8687499761581421), NumSequenceKeypoint(0.504, 0.96875), NumSequenceKeypoint(1, 1)}
+                    Transparency = NumSequence{NumSequenceKeypoint(0, 0), NumSequenceKeypoint(0.08, 0.55), NumSequenceKeypoint(0.3, 0.88), NumSequenceKeypoint(0.6, 0.97), NumSequenceKeypoint(1, 1)}
+                })
+
+                Items["GlowOuter"] = Instances:Create("Frame", {
+                    Parent = Items["Inactive"].Instance,
+                    Name = "\0",
+                    BackgroundTransparency = 1,
+                    BorderColor3 = FromRGB(0, 0, 0),
+                    Size = UDim2New(1, 0, 1, 0),
+                    BorderSizePixel = 0,
+                    ZIndex = 0,
+                    BackgroundColor3 = FromRGB(25, 30, 26)
+                })  Items["GlowOuter"]:AddToTheme({BackgroundColor3 = "Accent"})
+
+                Instances:Create("UIGradient", {
+                    Parent = Items["GlowOuter"].Instance,
+                    Name = "\0",
+                    Transparency = NumSequence{NumSequenceKeypoint(0, 0.75), NumSequenceKeypoint(0.15, 0.92), NumSequenceKeypoint(0.5, 1), NumSequenceKeypoint(1, 1)}
                 })
 
                 Items["Page"] = Instances:Create("Frame", {
@@ -1313,21 +1352,23 @@ local Library do
                         SortOrder = Enum.SortOrder.LayoutOrder
                     })
 
-                    for Index = 1, Data.Columns do 
+                    for Index = 1, Data.Columns do
                         local NewColumn = Instances:Create("ScrollingFrame", {
                             Parent = Items["Page"].Instance,
                             Name = "\0",
-                            ScrollBarImageColor3 = FromRGB(0, 0, 0),
+                            ScrollBarImageColor3 = FromRGB(202, 243, 255),
+                            ScrollBarImageTransparency = 0.6,
+                            MidImage = "rbxassetid://86918736894927",
                             Active = true,
                             AutomaticCanvasSize = Enum.AutomaticSize.Y,
-                            ScrollBarThickness = 0,
+                            ScrollBarThickness = 2,
                             BackgroundTransparency = 1,
                             Size = UDim2New(1, 0, 1, 0),
                             BackgroundColor3 = FromRGB(255, 255, 255),
                             BorderColor3 = FromRGB(0, 0, 0),
                             BorderSizePixel = 0,
                             CanvasSize = UDim2New(0, 0, 0, 0)
-                        })
+                        })  NewColumn:AddToTheme({ScrollBarImageColor3 = "Accent"})
 
                         Instances:Create("UIPadding", {
                             Parent = NewColumn.Instance,
@@ -1369,7 +1410,8 @@ local Library do
                     Items["Inactive"]:Tween(nil, {BackgroundTransparency = 0})
                     Items["ButtonBorder"]:Tween(nil, {Transparency = 0})
                     Items["Glow"]:Tween(nil, {BackgroundTransparency = 0})
-                    Items["Liner"]:Tween(nil, {BackgroundTransparency = 0})
+                    Items["GlowOuter"]:Tween(nil, {BackgroundTransparency = 0})
+                    Items["Liner"]:Tween(TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2New(0, 2, 1, 0)})
                     Items["Text"]:Tween(nil, {Position = UDim2New(0, 13, 0.5, 0)})
 
                     Library.CurrentPage = Page
@@ -1381,7 +1423,8 @@ local Library do
                     Items["Inactive"]:Tween(nil, {BackgroundTransparency = 0.6})
                     Items["ButtonBorder"]:Tween(nil, {Transparency = 0.6})
                     Items["Glow"]:Tween(nil, {BackgroundTransparency = 1})
-                    Items["Liner"]:Tween(nil, {BackgroundTransparency = 1})
+                    Items["GlowOuter"]:Tween(nil, {BackgroundTransparency = 1})
+                    Items["Liner"]:Tween(TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2New(0, 2, 0, 0)})
                     Items["Text"]:Tween(nil, {Position = UDim2New(0, 8, 0.5, 0)})
                 end
 
@@ -1692,6 +1735,18 @@ local Library do
                     BackgroundColor3 = FromRGB(255, 255, 255)
                 })
 
+                Items["TogglePulse"] = Instances:Create("Frame", {
+                    Parent = Items["Indicator"].Instance,
+                    Name = "\0",
+                    AnchorPoint = Vector2New(0.5, 0.5),
+                    Position = UDim2New(0.5, 0, 0.5, 0),
+                    Size = UDim2New(1, 0, 1, 0),
+                    BackgroundColor3 = FromRGB(202, 243, 255),
+                    BackgroundTransparency = 1,
+                    BorderSizePixel = 0,
+                    ZIndex = 0,
+                })  Items["TogglePulse"]:AddToTheme({BackgroundColor3 = "Accent"})
+
                 Items["Text"] = Instances:Create("TextLabel", {
                     Parent = Items["Toggle"].Instance,
                     Name = "\0",
@@ -1787,6 +1842,17 @@ local Library do
                     Items["Indicator"]:Tween(nil, {BackgroundColor3 = Library.Theme.Accent})
                     task.wait(0.05)
                     Items["Check"]:Tween(TweenInfo.new(Library.Tween.Time, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {ImageTransparency = 0, Size = UDim2New(1, 2, 1, 2)})
+
+                    -- Pulse effect on toggle on
+                    task.spawn(function()
+                        local pulseInst = Items["TogglePulse"].Instance
+                        pulseInst.Size = UDim2New(1, 0, 1, 0)
+                        pulseInst.BackgroundTransparency = 0.5
+                        TweenService:Create(pulseInst, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                            Size = UDim2New(1, 12, 1, 12),
+                            BackgroundTransparency = 1
+                        }):Play()
+                    end)
                 else
                     Items["Indicator"]:ChangeItemTheme({BackgroundColor3 = "Element", BorderColor3 = "Border"})
                     Items["Indicator"]:Tween(nil, {BackgroundColor3 = Library.Theme.Element})
@@ -2054,6 +2120,20 @@ local Library do
                 }):AddToTheme({Color = function()
                     return RGBSequence{RGBSequenceKeypoint(0, FromRGB(255, 255, 255)), RGBSequenceKeypoint(1, Library.Theme.Gradient)}
                 end})
+
+                Items["SliderGlow"] = Instances:Create("ImageLabel", {
+                    Parent = Items["Accent"].Instance,
+                    Name = "\0",
+                    AnchorPoint = Vector2New(0.5, 0.5),
+                    Position = UDim2New(1, 0, 0.5, 0),
+                    Size = UDim2New(0, 18, 0, 18),
+                    BackgroundTransparency = 1,
+                    ImageColor3 = FromRGB(202, 243, 255),
+                    ImageTransparency = 0.55,
+                    Image = "rbxassetid://6015897843",
+                    ZIndex = 0,
+                    BorderSizePixel = 0,
+                })  Items["SliderGlow"]:AddToTheme({ImageColor3 = "Accent"})
 
                 Items["Dragger"] = Instances:Create("Frame", {
                     Parent = Items["Accent"].Instance,
@@ -2414,18 +2494,26 @@ local Library do
                 end
 
                 Dropdown.IsOpen = Bool
-
                 Debounce = true 
 
+                local optionHolder = Items["OptionHolder"].Instance
+                local realDropdown = Items["RealDropdown"].Instance
+
                 if Dropdown.IsOpen then 
-                    Items["OptionHolder"].Instance.Visible = true
-                    Items["OptionHolder"].Instance.Parent = Library.Holder.Instance
+                    optionHolder.Visible = true
+                    optionHolder.Parent = Library.Holder.Instance
                     Items["Icon"]:Tween(nil, {Rotation = -90})
                     
+                    -- Initial state for animation
+                    optionHolder.Size = UDim2New(0, realDropdown.AbsoluteSize.X, 0, 0)
+                    optionHolder.ClipsDescendants = true
+                    
                     RenderStepped = RunService.RenderStepped:Connect(function()
-                        Items["OptionHolder"].Instance.Position = UDim2New(0, Items["RealDropdown"].Instance.AbsolutePosition.X, 0, Items["RealDropdown"].Instance.AbsolutePosition.Y + Items["RealDropdown"].Instance.AbsoluteSize.Y + 5)
-                        Items["OptionHolder"].Instance.Size = UDim2New(0, Items["RealDropdown"].Instance.AbsoluteSize.X, 0, 0)
+                        optionHolder.Position = UDim2New(0, realDropdown.AbsolutePosition.X, 0, realDropdown.AbsolutePosition.Y + realDropdown.AbsoluteSize.Y + 5)
                     end)
+
+                    local targetSize = UDim2New(0, realDropdown.AbsoluteSize.X, 0, optionHolder:FindFirstChildOfClass("UIListLayout").AbsoluteContentSize.Y + 10)
+                    TweenService:Create(optionHolder, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize}):Play()
 
                     if not Debounce then 
                         for Index, Value in Library.OpenFrames do 
@@ -2449,40 +2537,37 @@ local Library do
                     end
 
                     Items["Icon"]:Tween(nil, {Rotation = 0})
+                    TweenService:Create(optionHolder, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Size = UDim2New(0, realDropdown.AbsoluteSize.X, 0, 0)}):Play()
                 end
 
-                local Descendants = Items["OptionHolder"].Instance:GetDescendants()
-                TableInsert(Descendants, Items["OptionHolder"].Instance)
+                local Descendants = optionHolder:GetDescendants()
+                TableInsert(Descendants, optionHolder)
 
                 local NewTween
-
                 for Index, Value in Descendants do 
                     local TransparencyProperty = Tween:GetProperty(Value)
-
-                    if not TransparencyProperty then
-                        continue 
-                    end
+                    if not TransparencyProperty then continue end
 
                     if type(TransparencyProperty) == "table" then 
                         for _, Property in TransparencyProperty do 
-                            NewTween = Tween:FadeItem(Value, Property, Bool, Library.FadeSpeed)
+                            NewTween = Tween:FadeItem(Value, Property, Bool, 0.2)
                         end
                     else
-                        NewTween = Tween:FadeItem(Value, TransparencyProperty, Bool, Library.FadeSpeed)
+                        NewTween = Tween:FadeItem(Value, TransparencyProperty, Bool, 0.2)
                     end
                 end
                 
                 if NewTween and NewTween.Tween then
                     NewTween.Tween.Completed:Connect(function()
                         Debounce = false 
-                        Items["OptionHolder"].Instance.Visible = Dropdown.IsOpen
+                        optionHolder.Visible = Dropdown.IsOpen
                         task.wait(0.2)
-                        Items["OptionHolder"].Instance.Parent = not Dropdown.IsOpen and Library.UnusedHolder.Instance or Library.Holder.Instance
+                        optionHolder.Parent = not Dropdown.IsOpen and Library.UnusedHolder.Instance or Library.Holder.Instance
                     end)
                 else
                     Debounce = false
-                    Items["OptionHolder"].Instance.Visible = Dropdown.IsOpen
-                    Items["OptionHolder"].Instance.Parent = not Dropdown.IsOpen and Library.UnusedHolder.Instance or Library.Holder.Instance
+                    optionHolder.Visible = Dropdown.IsOpen
+                    optionHolder.Parent = not Dropdown.IsOpen and Library.UnusedHolder.Instance or Library.Holder.Instance
                 end
             end
 
@@ -5427,50 +5512,55 @@ local Library do
             end
 
             Window.IsOpen = Bool
-
             Debounce = true 
 
+            local winInst = Items["Window"].Instance
+            local finalSize = Window:GetOldSize(winInst) or winInst.Size
+            Window:AddToOldSizes(winInst, finalSize)
+
             if Window.IsOpen then 
-                Items["Window"].Instance.Visible = true 
+                winInst.Visible = true 
+                winInst.Size = UDim2New(0, finalSize.X.Offset * 0.95, 0, finalSize.Y.Offset * 0.95)
+                TweenService:Create(winInst, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = finalSize}):Play()
+            else
+                TweenService:Create(winInst, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Size = UDim2New(0, finalSize.X.Offset * 0.95, 0, finalSize.Y.Offset * 0.95)}):Play()
             end
 
-            local Descendants = Items["Window"].Instance:GetDescendants()
-            TableInsert(Descendants, Items["Window"].Instance)
+            local Descendants = winInst:GetDescendants()
+            TableInsert(Descendants, winInst)
 
             local NewTween
-
             for Index, Value in Descendants do 
                 local TransparencyProperty = Tween:GetProperty(Value)
-
-                if not TransparencyProperty then
-                    continue 
-                end
+                if not TransparencyProperty then continue end
 
                 if type(TransparencyProperty) == "table" then 
                     for _, Property in TransparencyProperty do 
-                        NewTween = Tween:FadeItem(Value, Property, Bool, Library.FadeSpeed)
+                        NewTween = Tween:FadeItem(Value, Property, Bool, 0.25)
                     end
                 else
-                    NewTween = Tween:FadeItem(Value, TransparencyProperty, Bool, Library.FadeSpeed)
+                    NewTween = Tween:FadeItem(Value, TransparencyProperty, Bool, 0.25)
                 end
             end
             
             if NewTween and NewTween.Tween then
                 NewTween.Tween.Completed:Connect(function()
                     Debounce = false 
-                    Items["Window"].Instance.Visible = Window.IsOpen
+                    winInst.Visible = Window.IsOpen
                     Items["MouseBackground"].Instance.Visible = false
                     UserInputService.MouseIconEnabled = true
                     if Window.IsOpen then
+                        winInst.Size = finalSize
                         UserInputService.MouseBehavior = Enum.MouseBehavior.Default
                     end
                 end)
             else
                 Debounce = false
-                Items["Window"].Instance.Visible = Window.IsOpen
+                winInst.Visible = Window.IsOpen
                 Items["MouseBackground"].Instance.Visible = false
                 UserInputService.MouseIconEnabled = true
                 if Window.IsOpen then
+                    winInst.Size = finalSize
                     UserInputService.MouseBehavior = Enum.MouseBehavior.Default
                 end
             end
@@ -5545,7 +5635,67 @@ local Library do
             Window:ApplySearch()
         end)
 
-        Window:SetOpen(true)
+        -- New sleek intro animation
+        do
+            local windowInst = Items["Window"].Instance
+            local finalPos = windowInst.Position
+            local finalSize = windowInst.Size
+            
+            -- Initial hidden state
+            windowInst.BackgroundTransparency = 1
+            windowInst.Position = UDim2New(finalPos.X.Scale, finalPos.X.Offset, finalPos.Y.Scale, finalPos.Y.Offset - 30)
+            windowInst.Visible = true
+
+            -- Hide all descendants initially
+            local Descendants = windowInst:GetDescendants()
+            local transparencyCache = {}
+            for _, v in Descendants do
+                local prop = Tween:GetProperty(v)
+                if prop then
+                    if type(prop) == "table" then
+                        transparencyCache[v] = {}
+                        for _, p in prop do
+                            transparencyCache[v][p] = v[p]
+                            v[p] = 1
+                        end
+                    else
+                        transparencyCache[v] = v[prop]
+                        v[prop] = 1
+                    end
+                end
+            end
+
+            task.wait(0.2) -- Small breath before starting
+
+            -- Animate window in
+            local introTweenInfo = TweenInfo.new(0.6, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+            TweenService:Create(windowInst, introTweenInfo, {
+                Position = finalPos,
+                BackgroundTransparency = Library.Theme.BackgroundTransparency or 0
+            }):Play()
+
+            -- Staggered fade in of descendants
+            Library:Thread(function()
+                for _, v in Descendants do
+                    local cached = transparencyCache[v]
+                    if cached then
+                        local prop = Tween:GetProperty(v)
+                        if type(prop) == "table" then
+                            for _, p in prop do
+                                TweenService:Create(v, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {[p] = cached[p]}):Play()
+                            end
+                        else
+                            TweenService:Create(v, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {[prop] = cached}):Play()
+                        end
+                    end
+                end
+                
+                -- Ensure window is fully open
+                Window.IsOpen = true
+                UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+            end)
+        end
+
         return setmetatable(Window, self)
     end
 
@@ -6000,7 +6150,7 @@ local Library do
                 Parent = Items["Section"].Instance,
                 Name = "\0",
                 BorderColor3 = FromRGB(0, 0, 0),
-                Size = UDim2New(1, 0, 0, 18),
+                Size = UDim2New(1, 0, 0, 22),
                 BorderSizePixel = 0,
                 BackgroundColor3 = FromRGB(202, 243, 255)
             })  Items["Glow"]:AddToTheme({BackgroundColor3  = "Accent"})
@@ -6009,7 +6159,19 @@ local Library do
                 Parent = Items["Glow"].Instance,
                 Name = "\0",
                 Rotation = 90,
-                Transparency = NumSequence{NumSequenceKeypoint(0, 0), NumSequenceKeypoint(0.193, 0.8687499761581421), NumSequenceKeypoint(0.504, 0.96875), NumSequenceKeypoint(1, 1)}
+                Transparency = NumSequence{NumSequenceKeypoint(0, 0.65), NumSequenceKeypoint(0.15, 0.88), NumSequenceKeypoint(0.45, 0.97), NumSequenceKeypoint(1, 1)}
+            })
+
+            -- Subtle inner highlight at top of section for visual separation
+            Items["TopHighlight"] = Instances:Create("Frame", {
+                Parent = Items["Section"].Instance,
+                Name = "\0",
+                Position = UDim2New(0, 0, 0, 1),
+                Size = UDim2New(1, 0, 0, 1),
+                BorderSizePixel = 0,
+                BackgroundColor3 = FromRGB(255, 255, 255),
+                BackgroundTransparency = 0.92,
+                ZIndex = 2,
             })
 
             Items["Text"] = Instances:Create("TextLabel", {
@@ -6487,6 +6649,7 @@ local Library do
             local ThemingSubPage = SettingsPage:SubPage({Name = "Theming", Columns = 2}) do 
                 local ThemesSection = ThemingSubPage:Section({Name = "Themes", Side = 1}) do
                     for Index, Value in Library.Theme do 
+                        if Index == "BackgroundTransparency" then continue end
                         ThemesSection:Label(Index):Colorpicker({
                             Name = Index,
                             Flag = Index.."Theme",
@@ -6497,6 +6660,67 @@ local Library do
                             end
                         })
                     end
+                end
+
+                local AppearanceSection = ThemingSubPage:Section({Name = "Appearance", Side = 2}) do
+                    AppearanceSection:Slider({
+                        Name = "Transparency",
+                        Flag = "MenuTransparency",
+                        Min = 0,
+                        Max = 1,
+                        Decimals = 0.01,
+                        Default = Library.Theme.BackgroundTransparency or 0,
+                        Callback = function(Value)
+                            Library.Theme.BackgroundTransparency = Value
+                            Window.Items["Window"].Instance.BackgroundTransparency = Value
+                        end
+                    })
+
+                    local LogoAnimating = false
+                    local OriginalLogoProps = {}
+                    local AnimationIDs = {
+                        "92359740620695", "113461496082742", "118152614513581", "112642540148609",
+                        "83597850495347", "85086300013235", "86315840046843", "130249645737951",
+                        "70955538108907", "132131954620240", "108859309239372", "104318538418670",
+                        "134705248587629", "140069875450735", "78704121772993", "118263263747237",
+                        "120654554535982", "127989408359510", "111551936315278", "100486503236397"
+                    }
+
+                    AppearanceSection:Toggle({
+                        Name = "Animate Logo",
+                        Flag = "AnimateLogo",
+                        Default = true,
+                        Callback = function(Value)
+                            LogoAnimating = Value
+                            local Logo = Window.Items["Logo"].Instance
+                            if Value then
+                                if not OriginalLogoProps.Position then
+                                    OriginalLogoProps.Position = Logo.Position
+                                    OriginalLogoProps.Size = Logo.Size
+                                    OriginalLogoProps.Image = Logo.Image
+                                end
+                                
+                                Logo.Position = UDim2New(0.5, 0, 0, -125)
+                                Logo.Size = UDim2New(0, 350, 0, 350)
+                                
+                                Library:Thread(function()
+                                    local index = 1
+                                    while LogoAnimating do
+                                        Logo.Image = "rbxassetid://" .. AnimationIDs[index]
+                                        index = index + 1
+                                        if index > #AnimationIDs then index = 1 end
+                                        task.wait(0.05)
+                                    end
+                                end)
+                            else
+                                if OriginalLogoProps.Position then
+                                    Logo.Position = OriginalLogoProps.Position
+                                    Logo.Size = OriginalLogoProps.Size
+                                    Logo.Image = OriginalLogoProps.Image
+                                end
+                            end
+                        end
+                    })
                 end
             end
 
