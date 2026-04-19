@@ -487,17 +487,14 @@ do
 
 			local Set = function(Input)
 				local DragDelta = Input.Position - DragStart
-				self:Tween(
-					TweenInfo.new(0.16, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
-					{
-						Position = UDim2New(
-							StartPosition.X.Scale,
-							StartPosition.X.Offset + DragDelta.X,
-							StartPosition.Y.Scale,
-							StartPosition.Y.Offset + DragDelta.Y
-						),
-					}
-				)
+				self:Tween(TweenInfo.new(0.16, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+					Position = UDim2New(
+						StartPosition.X.Scale,
+						StartPosition.X.Offset + DragDelta.X,
+						StartPosition.Y.Scale,
+						StartPosition.Y.Offset + DragDelta.Y
+					),
+				})
 			end
 
 			local InputChanged
@@ -5327,11 +5324,28 @@ do
 	end
 
 	-- Library components
-	Library.Watermark = function(self, Name)
+	Library.Watermark = function(self, Name, Logo)
 		local Watermark = {}
+		Library.WatermarkStart = Library.WatermarkStart or os.clock()
 
 		local Items = {}
 		do
+			Items["Glow"] = Instances:Create("ImageLabel", {
+				Parent = Library.Holder.Instance,
+				Name = "\0",
+				AnchorPoint = Vector2New(0.5, 1),
+				Position = UDim2New(0.5, 0, 1, -12),
+				Size = UDim2New(1, 24, 1, 24),
+				BackgroundTransparency = 1,
+				Image = "rbxassetid://6015897843",
+				ImageTransparency = 0.35,
+				ImageColor3 = FromRGB(202, 243, 255),
+				ScaleType = Enum.ScaleType.Slice,
+				SliceCenter = RectNew(49, 49, 450, 450),
+				ZIndex = 0,
+			})
+			Items["Glow"]:AddToTheme({ ImageColor3 = "Accent" })
+
 			Items["Watermark"] = Instances:Create("Frame", {
 				Parent = Library.Holder.Instance,
 				Name = "\0",
@@ -5346,6 +5360,24 @@ do
 
 			Items["Watermark"]:MakeDraggable()
 
+			Library:Connect(Items["Watermark"].Instance:GetPropertyChangedSignal("AbsolutePosition"), function()
+				Items["Glow"].Instance.Position = UDim2New(
+					0,
+					Items["Watermark"].Instance.AbsolutePosition.X + Items["Watermark"].Instance.AbsoluteSize.X / 2,
+					0,
+					Items["Watermark"].Instance.AbsolutePosition.Y + Items["Watermark"].Instance.AbsoluteSize.Y
+				)
+				Items["Glow"].Instance.AnchorPoint = Vector2New(0.5, 1)
+			end)
+			Library:Connect(Items["Watermark"].Instance:GetPropertyChangedSignal("AbsoluteSize"), function()
+				Items["Glow"].Instance.Size = UDim2New(
+					0,
+					Items["Watermark"].Instance.AbsoluteSize.X + 24,
+					0,
+					Items["Watermark"].Instance.AbsoluteSize.Y + 24
+				)
+			end)
+
 			Instances:Create("UIStroke", {
 				Parent = Items["Watermark"].Instance,
 				Name = "\0",
@@ -5359,9 +5391,45 @@ do
 				Name = "\0",
 				PaddingTop = UDimNew(0, 5),
 				PaddingBottom = UDimNew(0, 7),
-				PaddingRight = UDimNew(0, 5),
-				PaddingLeft = UDimNew(0, 5),
+				PaddingRight = UDimNew(0, 7),
+				PaddingLeft = UDimNew(0, 7),
 			})
+
+			Instances:Create("UIListLayout", {
+				Parent = Items["Watermark"].Instance,
+				Name = "\0",
+				FillDirection = Enum.FillDirection.Horizontal,
+				VerticalAlignment = Enum.VerticalAlignment.Center,
+				SortOrder = Enum.SortOrder.LayoutOrder,
+				Padding = UDimNew(0, 6),
+			})
+
+			if Logo and Logo ~= "" then
+				Items["Logo"] = Instances:Create("ImageLabel", {
+					Parent = Items["Watermark"].Instance,
+					Name = "\0",
+					BackgroundTransparency = 1,
+					Size = UDim2New(0, 12, 0, 12),
+					Image = "rbxassetid://" .. Logo,
+					ImageColor3 = FromRGB(202, 243, 255),
+					LayoutOrder = 1,
+				})
+				Items["Logo"]:AddToTheme({ ImageColor3 = "Accent" })
+
+				Library:Connect(RunService.RenderStepped, function(dt)
+					Items["Logo"].Instance.Rotation = (Items["Logo"].Instance.Rotation + dt * 180) % 360
+				end)
+
+				Items["Separator"] = Instances:Create("Frame", {
+					Parent = Items["Watermark"].Instance,
+					Name = "\0",
+					Size = UDim2New(0, 1, 0, 12),
+					BorderSizePixel = 0,
+					BackgroundColor3 = FromRGB(42, 49, 45),
+					LayoutOrder = 2,
+				})
+				Items["Separator"]:AddToTheme({ BackgroundColor3 = "Outline" })
+			end
 
 			Items["Text"] = Instances:Create("TextLabel", {
 				Parent = Items["Watermark"].Instance,
@@ -5370,13 +5438,13 @@ do
 				TextColor3 = FromRGB(235, 235, 235),
 				BorderColor3 = FromRGB(0, 0, 0),
 				Text = Name,
-				Position = UDim2New(0, 0, 0, 2),
 				BackgroundTransparency = 1,
 				TextXAlignment = Enum.TextXAlignment.Left,
 				BorderSizePixel = 0,
 				AutomaticSize = Enum.AutomaticSize.XY,
 				TextSize = 9,
 				BackgroundColor3 = FromRGB(255, 255, 255),
+				LayoutOrder = 3,
 			})
 			Items["Text"]:AddToTheme({ TextColor3 = "Text" })
 
@@ -5385,17 +5453,45 @@ do
 			Items["Liner"] = Instances:Create("Frame", {
 				Parent = Items["Watermark"].Instance,
 				Name = "\0",
-				Position = UDim2New(0, -5, 0, -5),
+				Position = UDim2New(0, -7, 0, -5),
 				BorderColor3 = FromRGB(0, 0, 0),
-				Size = UDim2New(1, 10, 0, 1),
+				Size = UDim2New(1, 14, 0, 1),
 				BorderSizePixel = 0,
 				BackgroundColor3 = FromRGB(202, 243, 255),
+				ZIndex = 2,
 			})
 			Items["Liner"]:AddToTheme({ BackgroundColor3 = "Accent" })
+
+			local lastTick = 0
+			Library:Connect(RunService.Heartbeat, function()
+				if not Library then
+					return
+				end
+				local now = os.clock()
+				if now - lastTick < 0.5 then
+					return
+				end
+				lastTick = now
+				if Library.ShowUptime then
+					local seconds = math.floor(now - Library.WatermarkStart)
+					local h = math.floor(seconds / 3600)
+					local m = math.floor(seconds / 60) % 60
+					local s = seconds % 60
+					Items["Text"].Instance.Text = StringFormat("%s | Uptime: %02d:%02d:%02d", Name, h, m, s)
+				else
+					Items["Text"].Instance.Text = Name
+				end
+			end)
 		end
 
 		function Watermark:SetVisibility(Bool)
 			Items["Watermark"].Instance.Visible = Bool
+			Items["Glow"].Instance.Visible = Bool
+		end
+
+		function Watermark:SetText(Text)
+			Name = Text
+			Items["Text"].Instance.Text = Text
 		end
 
 		return Watermark
@@ -5407,6 +5503,22 @@ do
 
 		local Items = {}
 		do
+			Items["Glow"] = Instances:Create("ImageLabel", {
+				Parent = Library.Holder.Instance,
+				Name = "\0",
+				AnchorPoint = Vector2New(0, 0.5),
+				Position = UDim2New(0, 0, 0.5, 55),
+				Size = UDim2New(0, 204, 0, 56),
+				BackgroundTransparency = 1,
+				Image = "rbxassetid://6015897843",
+				ImageTransparency = 0.35,
+				ImageColor3 = FromRGB(202, 243, 255),
+				ScaleType = Enum.ScaleType.Slice,
+				SliceCenter = RectNew(49, 49, 450, 450),
+				ZIndex = 0,
+			})
+			Items["Glow"]:AddToTheme({ ImageColor3 = "Accent" })
+
 			Items["KeybindList"] = Instances:Create("Frame", {
 				Parent = Library.Holder.Instance,
 				Name = "\0",
@@ -5421,6 +5533,23 @@ do
 			Items["KeybindList"]:AddToTheme({ BackgroundColor3 = "Background", BorderColor3 = "Border" })
 
 			Items["KeybindList"]:MakeDraggable()
+
+			Library:Connect(Items["KeybindList"].Instance:GetPropertyChangedSignal("AbsolutePosition"), function()
+				Items["Glow"].Instance.Position = UDim2New(
+					0,
+					Items["KeybindList"].Instance.AbsolutePosition.X - 12,
+					0,
+					Items["KeybindList"].Instance.AbsolutePosition.Y + Items["KeybindList"].Instance.AbsoluteSize.Y / 2
+				)
+			end)
+			Library:Connect(Items["KeybindList"].Instance:GetPropertyChangedSignal("AbsoluteSize"), function()
+				Items["Glow"].Instance.Size = UDim2New(
+					0,
+					Items["KeybindList"].Instance.AbsoluteSize.X + 24,
+					0,
+					Items["KeybindList"].Instance.AbsoluteSize.Y + 24
+				)
+			end)
 
 			Instances:Create("UIStroke", {
 				Parent = Items["KeybindList"].Instance,
@@ -5536,6 +5665,7 @@ do
 
 		function KeybindList:SetVisibility(Bool)
 			Items["KeybindList"].Instance.Visible = Bool
+			Items["Glow"].Instance.Visible = Bool
 		end
 
 		return KeybindList
@@ -7367,6 +7497,15 @@ do
 						Default = true,
 						Callback = function(Value)
 							KeybindList:SetVisibility(Value)
+						end,
+					})
+
+					SettingsSection:Toggle({
+						Name = "Uptime",
+						Flag = "Uptime",
+						Default = false,
+						Callback = function(Value)
+							Library.ShowUptime = Value
 						end,
 					})
 
