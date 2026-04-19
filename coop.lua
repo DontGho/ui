@@ -5333,12 +5333,12 @@ do
 			Items["Glow"] = Instances:Create("ImageLabel", {
 				Parent = Library.Holder.Instance,
 				Name = "\0",
-				AnchorPoint = Vector2New(0.5, 1),
+				AnchorPoint = Vector2New(0.5, 0.5),
 				Position = UDim2New(0.5, 0, 1, -12),
-				Size = UDim2New(1, 24, 1, 24),
+				Size = UDim2New(1, 14, 1, 14),
 				BackgroundTransparency = 1,
 				Image = "rbxassetid://6015897843",
-				ImageTransparency = 0.35,
+				ImageTransparency = 0.55,
 				ImageColor3 = FromRGB(202, 243, 255),
 				ScaleType = Enum.ScaleType.Slice,
 				SliceCenter = RectNew(49, 49, 450, 450),
@@ -5360,23 +5360,18 @@ do
 
 			Items["Watermark"]:MakeDraggable()
 
-			Library:Connect(Items["Watermark"].Instance:GetPropertyChangedSignal("AbsolutePosition"), function()
+			local function updateGlow()
+				local wm = Items["Watermark"].Instance
 				Items["Glow"].Instance.Position = UDim2New(
 					0,
-					Items["Watermark"].Instance.AbsolutePosition.X + Items["Watermark"].Instance.AbsoluteSize.X / 2,
+					wm.AbsolutePosition.X + wm.AbsoluteSize.X / 2,
 					0,
-					Items["Watermark"].Instance.AbsolutePosition.Y + Items["Watermark"].Instance.AbsoluteSize.Y
+					wm.AbsolutePosition.Y + wm.AbsoluteSize.Y / 2
 				)
-				Items["Glow"].Instance.AnchorPoint = Vector2New(0.5, 1)
-			end)
-			Library:Connect(Items["Watermark"].Instance:GetPropertyChangedSignal("AbsoluteSize"), function()
-				Items["Glow"].Instance.Size = UDim2New(
-					0,
-					Items["Watermark"].Instance.AbsoluteSize.X + 24,
-					0,
-					Items["Watermark"].Instance.AbsoluteSize.Y + 24
-				)
-			end)
+				Items["Glow"].Instance.Size = UDim2New(0, wm.AbsoluteSize.X + 14, 0, wm.AbsoluteSize.Y + 14)
+			end
+			Library:Connect(Items["Watermark"].Instance:GetPropertyChangedSignal("AbsolutePosition"), updateGlow)
+			Library:Connect(Items["Watermark"].Instance:GetPropertyChangedSignal("AbsoluteSize"), updateGlow)
 
 			Instances:Create("UIStroke", {
 				Parent = Items["Watermark"].Instance,
@@ -5389,10 +5384,10 @@ do
 			Instances:Create("UIPadding", {
 				Parent = Items["Watermark"].Instance,
 				Name = "\0",
-				PaddingTop = UDimNew(0, 5),
-				PaddingBottom = UDimNew(0, 7),
-				PaddingRight = UDimNew(0, 7),
-				PaddingLeft = UDimNew(0, 7),
+				PaddingTop = UDimNew(0, 3),
+				PaddingBottom = UDimNew(0, 4),
+				PaddingRight = UDimNew(0, 5),
+				PaddingLeft = UDimNew(0, 5),
 			})
 
 			Instances:Create("UIListLayout", {
@@ -5401,7 +5396,7 @@ do
 				FillDirection = Enum.FillDirection.Horizontal,
 				VerticalAlignment = Enum.VerticalAlignment.Center,
 				SortOrder = Enum.SortOrder.LayoutOrder,
-				Padding = UDimNew(0, 6),
+				Padding = UDimNew(0, 4),
 			})
 
 			if Logo and Logo ~= "" then
@@ -5409,7 +5404,7 @@ do
 					Parent = Items["Watermark"].Instance,
 					Name = "\0",
 					BackgroundTransparency = 1,
-					Size = UDim2New(0, 12, 0, 12),
+					Size = UDim2New(0, 13, 0, 13),
 					Image = "rbxassetid://" .. Logo,
 					ImageColor3 = FromRGB(202, 243, 255),
 					LayoutOrder = 1,
@@ -5419,16 +5414,6 @@ do
 				Library:Connect(RunService.RenderStepped, function(dt)
 					Items["Logo"].Instance.Rotation = (Items["Logo"].Instance.Rotation + dt * 180) % 360
 				end)
-
-				Items["Separator"] = Instances:Create("Frame", {
-					Parent = Items["Watermark"].Instance,
-					Name = "\0",
-					Size = UDim2New(0, 1, 0, 12),
-					BorderSizePixel = 0,
-					BackgroundColor3 = FromRGB(42, 49, 45),
-					LayoutOrder = 2,
-				})
-				Items["Separator"]:AddToTheme({ BackgroundColor3 = "Outline" })
 			end
 
 			Items["Text"] = Instances:Create("TextLabel", {
@@ -5444,7 +5429,7 @@ do
 				AutomaticSize = Enum.AutomaticSize.XY,
 				TextSize = 9,
 				BackgroundColor3 = FromRGB(255, 255, 255),
-				LayoutOrder = 3,
+				LayoutOrder = 2,
 			})
 			Items["Text"]:AddToTheme({ TextColor3 = "Text" })
 
@@ -5453,9 +5438,9 @@ do
 			Items["Liner"] = Instances:Create("Frame", {
 				Parent = Items["Watermark"].Instance,
 				Name = "\0",
-				Position = UDim2New(0, -7, 0, -5),
+				Position = UDim2New(0, -5, 0, -3),
 				BorderColor3 = FromRGB(0, 0, 0),
-				Size = UDim2New(1, 14, 0, 1),
+				Size = UDim2New(1, 10, 0, 1),
 				BorderSizePixel = 0,
 				BackgroundColor3 = FromRGB(202, 243, 255),
 				ZIndex = 2,
@@ -5506,12 +5491,12 @@ do
 			Items["Glow"] = Instances:Create("ImageLabel", {
 				Parent = Library.Holder.Instance,
 				Name = "\0",
-				AnchorPoint = Vector2New(0, 0.5),
-				Position = UDim2New(0, 0, 0.5, 55),
-				Size = UDim2New(0, 204, 0, 56),
+				AnchorPoint = Vector2New(0.5, 0.5),
+				Position = UDim2New(0, 102, 0.5, 55),
+				Size = UDim2New(0, 194, 0, 46),
 				BackgroundTransparency = 1,
 				Image = "rbxassetid://6015897843",
-				ImageTransparency = 0.35,
+				ImageTransparency = 0.55,
 				ImageColor3 = FromRGB(202, 243, 255),
 				ScaleType = Enum.ScaleType.Slice,
 				SliceCenter = RectNew(49, 49, 450, 450),
@@ -5534,22 +5519,18 @@ do
 
 			Items["KeybindList"]:MakeDraggable()
 
-			Library:Connect(Items["KeybindList"].Instance:GetPropertyChangedSignal("AbsolutePosition"), function()
+			local function updateKeyGlow()
+				local kl = Items["KeybindList"].Instance
 				Items["Glow"].Instance.Position = UDim2New(
 					0,
-					Items["KeybindList"].Instance.AbsolutePosition.X - 12,
+					kl.AbsolutePosition.X + kl.AbsoluteSize.X / 2,
 					0,
-					Items["KeybindList"].Instance.AbsolutePosition.Y + Items["KeybindList"].Instance.AbsoluteSize.Y / 2
+					kl.AbsolutePosition.Y + kl.AbsoluteSize.Y / 2
 				)
-			end)
-			Library:Connect(Items["KeybindList"].Instance:GetPropertyChangedSignal("AbsoluteSize"), function()
-				Items["Glow"].Instance.Size = UDim2New(
-					0,
-					Items["KeybindList"].Instance.AbsoluteSize.X + 24,
-					0,
-					Items["KeybindList"].Instance.AbsoluteSize.Y + 24
-				)
-			end)
+				Items["Glow"].Instance.Size = UDim2New(0, kl.AbsoluteSize.X + 14, 0, kl.AbsoluteSize.Y + 14)
+			end
+			Library:Connect(Items["KeybindList"].Instance:GetPropertyChangedSignal("AbsolutePosition"), updateKeyGlow)
+			Library:Connect(Items["KeybindList"].Instance:GetPropertyChangedSignal("AbsoluteSize"), updateKeyGlow)
 
 			Instances:Create("UIStroke", {
 				Parent = Items["KeybindList"].Instance,
