@@ -5400,19 +5400,45 @@ do
 			})
 
 			if Logo and Logo ~= "" then
-				Items["Logo"] = Instances:Create("ImageLabel", {
+				local logoVisualSize = 58 -- tweak this to change the animated logo size only
+
+				Items["LogoSlot"] = Instances:Create("Frame", {
 					Parent = Items["Watermark"].Instance,
 					Name = "\0",
 					BackgroundTransparency = 1,
 					Size = UDim2New(0, 13, 0, 13),
+					LayoutOrder = 1,
+				})
+
+				Items["Logo"] = Instances:Create("ImageLabel", {
+					Parent = Library.Holder.Instance,
+					Name = "\0",
+					BackgroundTransparency = 1,
+					ScaleType = Enum.ScaleType.Fit,
+					AnchorPoint = Vector2New(0.5, 0.5),
+					Size = UDim2New(0, logoVisualSize, 0, logoVisualSize),
 					Image = "rbxassetid://" .. Logo,
 					ImageColor3 = FromRGB(202, 243, 255),
-					LayoutOrder = 1,
+					ZIndex = 3,
 				})
 				Items["Logo"]:AddToTheme({ ImageColor3 = "Accent" })
 
-				Library:Connect(RunService.RenderStepped, function(dt)
-					Items["Logo"].Instance.Rotation = (Items["Logo"].Instance.Rotation + dt * 180) % 360
+				local function updateLogoPosition()
+					local slot = Items["LogoSlot"].Instance
+					Items["Logo"].Instance.Position = UDim2New(
+						0,
+						slot.AbsolutePosition.X + slot.AbsoluteSize.X / 2,
+						0,
+						slot.AbsolutePosition.Y + slot.AbsoluteSize.Y / 2
+					)
+				end
+				Library:Connect(Items["LogoSlot"].Instance:GetPropertyChangedSignal("AbsolutePosition"), updateLogoPosition)
+				Library:Connect(Items["LogoSlot"].Instance:GetPropertyChangedSignal("AbsoluteSize"), updateLogoPosition)
+
+				Library:Connect(RunService.RenderStepped, function()
+					if Library.MainLogoInstance then
+						Items["Logo"].Instance.Image = Library.MainLogoInstance.Image
+					end
 				end)
 			end
 
@@ -5434,18 +5460,6 @@ do
 			Items["Text"]:AddToTheme({ TextColor3 = "Text" })
 
 			Items["Text"]:TextBorder()
-
-			Items["Liner"] = Instances:Create("Frame", {
-				Parent = Items["Watermark"].Instance,
-				Name = "\0",
-				Position = UDim2New(0, -5, 0, -3),
-				BorderColor3 = FromRGB(0, 0, 0),
-				Size = UDim2New(1, 10, 0, 1),
-				BorderSizePixel = 0,
-				BackgroundColor3 = FromRGB(202, 243, 255),
-				ZIndex = 2,
-			})
-			Items["Liner"]:AddToTheme({ BackgroundColor3 = "Accent" })
 
 			local lastTick = 0
 			Library:Connect(RunService.Heartbeat, function()
@@ -5472,6 +5486,9 @@ do
 		function Watermark:SetVisibility(Bool)
 			Items["Watermark"].Instance.Visible = Bool
 			Items["Glow"].Instance.Visible = Bool
+			if Items["Logo"] then
+				Items["Logo"].Instance.Visible = Bool
+			end
 		end
 
 		function Watermark:SetText(Text)
@@ -5838,6 +5855,7 @@ do
 				BackgroundColor3 = FromRGB(255, 255, 255),
 			})
 			Items["Logo"]:AddToTheme({ ImageColor3 = "Accent" })
+			Library.MainLogoInstance = Items["Logo"].Instance
 
 			Items["Search"] = Instances:Create("Frame", {
 				Parent = Items["Side"].Instance,
@@ -7724,7 +7742,7 @@ do
 					SettingsSection:Toggle({
 						Name = "Uptime",
 						Flag = "Uptime",
-						Default = false,
+						Default = true,
 						Callback = function(Value)
 							Library.ShowUptime = Value
 						end,
