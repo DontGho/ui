@@ -7287,6 +7287,246 @@ do
 		return BlankElement, Items
 	end
 
+	Library.FlagRegistry = {
+		Toggle = {},
+		Slider = {},
+		Dropdown = {},
+		ColorPicker = {},
+		Keybind = {},
+		Textbox = {},
+		Searchbox = {},
+	}
+
+	Library.createTooltip = function(tooltip)
+		if type(tooltip) == "table" then
+			return tooltip
+		end
+
+		if type(tooltip) == "string" and tooltip ~= "" then
+			return {
+				Name = tooltip,
+				Description = tooltip,
+			}
+		end
+	end
+
+	Library.getSliderDecimals = function(data)
+		if data.step then
+			if data.step <= 1 then
+				return 1
+			end
+
+			return 10 ^ -data.step
+		end
+
+		for _, value in ipairs({ data.default, data.min, data.max }) do
+			if type(value) == "number" and value % 1 ~= 0 then
+				return 0.01
+			end
+		end
+
+		return 1
+	end
+
+	Library.registerToggle = function(name, control)
+		Library.FlagRegistry.Toggle[name] = {
+			getState = function(self)
+				return control:Get()
+			end,
+			updateState = function(self, data)
+				control:Set(data.state)
+			end,
+			setState = function(self, value)
+				control:Set(value)
+			end,
+			object = control,
+		}
+
+		return control
+	end
+
+	Library.registerSlider = function(name, control)
+		Library.FlagRegistry.Slider[name] = {
+			getValue = function(self)
+				return control:Get()
+			end,
+			updateValue = function(self, data)
+				control:Set(data.value)
+			end,
+			setValue = function(self, value)
+				control:Set(value)
+			end,
+			object = control,
+		}
+
+		return control
+	end
+
+	Library.registerDropdown = function(name, control)
+		Library.FlagRegistry.Dropdown[name] = {
+			getValue = function(self)
+				return control:Get()
+			end,
+			updateValue = function(self, data)
+				control:Set(data.value)
+			end,
+			setValue = function(self, value)
+				control:Set(value)
+			end,
+			object = control,
+		}
+
+		return control
+	end
+
+	Library.registerColorPicker = function(name, control)
+		Library.FlagRegistry.ColorPicker[name] = {
+			getColor = function(self)
+				return control.Color
+			end,
+			setColor = function(self, color, alpha)
+				control:Set(color, alpha)
+			end,
+			object = control,
+		}
+
+		return control
+	end
+
+	Library.registerKeybind = function(name, control)
+		Library.FlagRegistry.Keybind[name] = {
+			getValue = function(self)
+				return control:Get()
+			end,
+			getState = function(self)
+				local _, _, toggled = control:Get()
+				return toggled
+			end,
+			isPressed = function(self)
+				local key, mode, toggled = control:Get()
+				if mode == "Toggle" or mode == "Always" then
+					return toggled
+				end
+
+				if type(key) ~= "string" or key == "" or key == "None" then
+					return false
+				end
+
+				local enumType, enumName = key:match("^Enum%.([^.]+)%.(.+)$")
+				if enumType == "KeyCode" then
+					local keyCode = Enum.KeyCode[enumName]
+					return keyCode and UserInputService:IsKeyDown(keyCode) or false
+				end
+
+				if enumType == "UserInputType" then
+					local inputType = Enum.UserInputType[enumName]
+					return inputType and UserInputService:IsMouseButtonPressed(inputType) or false
+				end
+
+				return toggled
+			end,
+			updateValue = function(self, data)
+				control:Set(data)
+			end,
+			object = control,
+		}
+
+		return control
+	end
+
+	Library.createToggle = function(section, data)
+		local control = section:Toggle({
+			Name = data.text,
+			Flag = data.flag or data.text,
+			Default = data.state or false,
+			ToolTip = Library.createTooltip(data.tooltip),
+			Callback = data.callback,
+		})
+
+		return Library.registerToggle(data.text, control)
+	end
+
+	Library.createSlider = function(section, data)
+		local control = section:Slider({
+			Name = data.text,
+			Flag = data.flag or data.text,
+			Default = data.default or 0,
+			Min = data.min or 0,
+			Max = data.max or 100,
+			Decimals = Library.getSliderDecimals(data),
+			Suffix = data.suffix or "",
+			ToolTip = Library.createTooltip(data.tooltip),
+			Callback = data.callback,
+		})
+
+		return Library.registerSlider(data.text, control)
+	end
+
+	Library.createDropdown = function(section, data)
+		local default = data.default
+		if data.multiple then
+			if type(default) ~= "table" then
+				default = default and { default } or {}
+			end
+		elseif type(default) == "table" then
+			default = default[1]
+		end
+
+		local control = section:Dropdown({
+			Name = data.text,
+			Flag = data.flag or data.text,
+			Items = data.list or {},
+			Default = default,
+			Multi = data.multiple or false,
+			ToolTip = Library.createTooltip(data.tooltip),
+			Callback = data.callback,
+		})
+
+		return Library.registerDropdown(data.text, control)
+	end
+
+	Library.createColorPicker = function(section, text, defaultColor, tooltip)
+		local control = section:Label(text, Library.createTooltip(tooltip)):Colorpicker({
+			Flag = text,
+			Default = defaultColor,
+			Alpha = 0,
+		})
+
+		return Library.registerColorPicker(text, control)
+	end
+
+	Library.createKeybind = function(parent, data)
+		local control = parent:Keybind({
+			Flag = data.flag or data.name,
+			Default = data.default,
+			Mode = data.mode or "Toggle",
+			Callback = data.callback,
+		})
+
+		if data.name then
+			Library.registerKeybind(data.name, control)
+		end
+
+		return control
+	end
+
+	Library.createLabelKeybind = function(section, data)
+		local name = data.name or data.text
+		local label = section:Label(name, Library.createTooltip(data.tooltip))
+		local control = label:Keybind({
+			Flag = data.flag or name,
+			Default = data.default,
+			Mode = data.mode or "Toggle",
+			Callback = data.callback,
+		})
+
+		if name then
+			Library.registerKeybind(name, control)
+		end
+
+		return control
+	end
+
 	Library.CreateSettingsPage = function(self, Window, Watermark, KeybindList)
 		local SettingsPage = Window:Page({ Name = "Settings", SubPages = true })
 		do
