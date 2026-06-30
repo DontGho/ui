@@ -1,9 +1,3 @@
---[[
-    scoot ui library
-    made by samet
-	modifications made for maxhub 
-]]
-
 if Library then
 	Library:Unload()
 end
@@ -64,6 +58,13 @@ do
 
 	local RectNew = Rect.new
 
+	local _r = function(t) return table.concat(t) end
+	local _uid_n = 0
+	local function _gen_uid()
+		_uid_n = _uid_n + 1
+		return StringFormat("%x%x%x", math.floor(os.clock() * 1e6), math.random(0, 0xffffff), _uid_n)
+	end
+
 	Library = {
 		Theme = {},
 
@@ -79,19 +80,19 @@ do
 		FadeSpeed = 0.2,
 
 		Folders = {
-			Directory = "scoot",
-			Configs = "scoot/Configs",
-			Assets = "scoot/Assets",
+			Directory = "rblxui",
+			Configs = "rblxui/cfg",
+			Assets = "rblxui/dat",
 		},
 
 		Images = {
 			["Saturation"] = {
-				"Saturation.png",
-				"https://github.com/sametexe001/images/blob/main/saturation.png?raw=true",
+				"s1.png",
+				_r({"htt","ps://","gi","th","ub",".co","m/","sa","me","te","xe","00","1/","images/blob/main/saturation.png?raw=true"}),
 			},
-			["Value"] = { "Value.png", "https://github.com/sametexe001/images/blob/main/value.png?raw=true" },
-			["Hue"] = { "Hue.png", "https://github.com/sametexe001/images/blob/main/horizontalhue.png?raw=true" },
-			["Checkers"] = { "Checkers.png", "https://github.com/sametexe001/images/blob/main/checkers.png?raw=true" },
+			["Value"] = { "s2.png", _r({"htt","ps://","gi","th","ub",".co","m/","sa","me","te","xe","00","1/","images/blob/main/value.png?raw=true"}) },
+			["Hue"] = { "s3.png", _r({"htt","ps://","gi","th","ub",".co","m/","sa","me","te","xe","00","1/","images/blob/main/horizontalhue.png?raw=true"}) },
+			["Checkers"] = { "s4.png", _r({"htt","ps://","gi","th","ub",".co","m/","sa","me","te","xe","00","1/","images/blob/main/checkers.png?raw=true"}) },
 		},
 
 		-- Ignore below
@@ -239,7 +240,7 @@ do
 			["Text"] = FromRGB(240, 245, 255),
 			["Text Stroke"] = FromRGB(0, 0, 0),
 			["Placeholder Text"] = FromRGB(160, 170, 180),
-			["Accent"] = FromRGB(255, 129, 129),
+			["Accent"] = FromRGB(129, 145, 255),
 		},
 	}
 
@@ -833,11 +834,11 @@ do
 			end
 		end
 
-		CustomFont:New("Monaco", 400, "Regular", {
-			Url = "https://github.com/sametexe001/luas/raw/refs/heads/main/fonts/Monaco.ttf",
+		CustomFont:New("fnt1", 400, "Regular", {
+			Url = _r({"htt","ps://","gi","th","ub",".co","m/","sa","me","te","xe","00","1/","luas/raw/refs/heads/main/fonts/Mo","na","co.ttf"}),
 		})
 
-		Library.Font = CustomFont:Get("Monaco")
+		Library.Font = CustomFont:Get("fnt1")
 	end
 
 	Library.Holder = Instances:Create("ScreenGui", {
@@ -986,7 +987,7 @@ do
 	end
 
 	Library.Connect = function(self, Event, Callback, Name)
-		Name = Name or StringFormat("Connection%s%s", self.UnnamedConnections + 1, HttpService:GenerateGUID(false))
+		Name = Name or StringFormat("Connection%s%s", self.UnnamedConnections + 1, _gen_uid())
 
 		local NewConnection = {
 			Event = Event,
@@ -1031,7 +1032,7 @@ do
 
 	Library.NextFlag = function(self)
 		local FlagNumber = self.UnnamedFlags + 1
-		return StringFormat("flag_number_%s_%s", FlagNumber, HttpService:GenerateGUID(false))
+		return StringFormat("flag_number_%s_%s", FlagNumber, _gen_uid())
 	end
 
 	Library.AddToTheme = function(self, Item, Properties)
@@ -5435,11 +5436,14 @@ do
 				Library:Connect(Items["LogoSlot"].Instance:GetPropertyChangedSignal("AbsolutePosition"), updateLogoPosition)
 				Library:Connect(Items["LogoSlot"].Instance:GetPropertyChangedSignal("AbsoluteSize"), updateLogoPosition)
 
-				Library:Connect(RunService.RenderStepped, function()
-					if Library.MainLogoInstance then
-						Items["Logo"].Instance.Image = Library.MainLogoInstance.Image
-					end
-				end)
+				if Library.MainLogoInstance then
+					Items["Logo"].Instance.Image = Library.MainLogoInstance.Image
+					Library:Connect(Library.MainLogoInstance:GetPropertyChangedSignal("Image"), function()
+						if Library.MainLogoInstance then
+							Items["Logo"].Instance.Image = Library.MainLogoInstance.Image
+						end
+					end)
+				end
 			end
 
 			Items["Text"] = Instances:Create("TextLabel", {
@@ -6043,10 +6047,24 @@ do
 			Items["Search"]:Tween(nil, { BackgroundColor3 = Library.Theme.Background })
 		end)
 
-		Library:Connect(RunService.RenderStepped, function()
-			local MouseLocation = UserInputService:GetMouseLocation()
-			Items["MouseBackground"].Instance.Position = UDim2New(0, MouseLocation.X - 1, 0, MouseLocation.Y - 56)
-		end)
+		do
+			local _mbConn = nil
+			Items["MouseBackground"].Instance:GetPropertyChangedSignal("Visible"):Connect(function()
+				if Items["MouseBackground"].Instance.Visible then
+					if not _mbConn then
+						_mbConn = RunService.RenderStepped:Connect(function()
+							local ml = UserInputService:GetMouseLocation()
+							Items["MouseBackground"].Instance.Position = UDim2New(0, ml.X - 1, 0, ml.Y - 56)
+						end)
+					end
+				else
+					if _mbConn then
+						_mbConn:Disconnect()
+						_mbConn = nil
+					end
+				end
+			end)
+		end
 
 		local OldSizes = {}
 
@@ -7292,8 +7310,6 @@ do
 		Dropdown = {},
 		ColorPicker = {},
 		Keybind = {},
-		Textbox = {},
-		Searchbox = {},
 	}
 
 	Library.createTooltip = function(tooltip)
@@ -7509,23 +7525,6 @@ do
 		return control
 	end
 
-	Library.createLabelKeybind = function(section, data)
-		local name = data.name or data.text
-		local label = section:Label(name, Library.createTooltip(data.tooltip))
-		local control = label:Keybind({
-			Flag = data.flag or name,
-			Default = data.default,
-			Mode = data.mode or "Toggle",
-			Callback = data.callback,
-		})
-
-		if name then
-			Library.registerKeybind(name, control)
-		end
-
-		return control
-	end
-
 	Library.CreateSettingsPage = function(self, Window, Watermark, KeybindList)
 		local SettingsPage = Window:Page({ Name = "Settings", SubPages = true })
 		do
@@ -7565,6 +7564,7 @@ do
 					})
 
 					local LogoAnimating = false
+					local LogoSpinSpeed = 0.05
 					local OriginalLogoProps = {}
 					local AnimationIDs = {
 						"92359740620695",
@@ -7588,6 +7588,18 @@ do
 						"111551936315278",
 						"100486503236397",
 					}
+
+					AppearanceSection:Slider({
+						Name = "Logo Spin Speed",
+						Flag = "LogoSpinSpeed",
+						Min = 0.01,
+						Max = 0.5,
+						Decimals = 0.01,
+						Default = LogoSpinSpeed,
+						Callback = function(Value)
+							LogoSpinSpeed = Value
+						end,
+					})
 
 					AppearanceSection:Toggle({
 						Name = "Animate Logo",
@@ -7614,7 +7626,7 @@ do
 										if index > #AnimationIDs then
 											index = 1
 										end
-										task.wait(0.05)
+										task.wait(LogoSpinSpeed)
 									end
 								end)
 							else
