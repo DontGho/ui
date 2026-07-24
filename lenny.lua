@@ -2093,6 +2093,468 @@ function Library:ToggleUI(state)
 	end
 end
 
+function Library:loadBeta(options: table)
+	options = options or {}
+
+	local Players = game:GetService("Players")
+	local HttpService = game:GetService("HttpService")
+	local TweenService = game:GetService("TweenService")
+	local Workspace = game:GetService("Workspace")
+
+	local localPlayer = Players.LocalPlayer
+
+	local apiUrl = options.apiUrl or "https://testserver-diki.onrender.com/api/public/online-roblox-ids"
+	local refreshInterval = options.refreshInterval or 20
+
+	local detectedColor = Color3.fromRGB(235, 80, 80)
+	local cleanColor = Color3.fromRGB(95, 205, 130)
+
+	local collapsedHeight = 46
+	local expandedHeight = 88
+
+	local BetaTab = Library:createTab({ text = "Beta", icon = "132485249599747" })
+	local PlayersPage = BetaTab:createSubTab({ text = "Players", sectionStyle = "Single" })
+	local PlayersSection = PlayersPage:createSection({ text = "Players In Server" })
+
+	local Container = PlayersSection.Section
+
+	-- tables
+	local hashSet = {}
+	local stickyDetected = {}
+	local rows = {}
+	local layoutOrder = 1
+	local currentOpen = nil
+	local spectating = nil
+
+	-- functions
+	local function hashUserId(userId)
+		local ok, hash = pcall(function()
+			return string.lower(crypt.hash(tostring(userId), "sha256"))
+		end)
+
+		if ok then
+			return hash
+		end
+
+		return nil
+	end
+
+	local function refreshHashSet()
+		local ok, body = pcall(function()
+			return game:HttpGet(apiUrl, true)
+		end)
+
+		if not ok then
+			return false
+		end
+
+		local decoded
+		local decodedOk = pcall(function()
+			decoded = HttpService:JSONDecode(body)
+		end)
+
+		if not decodedOk or type(decoded) ~= "table" or type(decoded.robloxIdsSha256) ~= "table" then
+			return false
+		end
+
+		local set = {}
+		for _, hash in ipairs(decoded.robloxIdsSha256) do
+			set[string.lower(hash)] = true
+		end
+
+		hashSet = set
+
+		-- detection is permanent: once a user shows up in any fetch they stay flagged for the
+		-- whole session, since "has used MaxHub" is a fact and shouldn't follow their presence
+		for hash in pairs(set) do
+			stickyDetected[hash] = true
+		end
+
+		return true
+	end
+
+	local function isUsingMaxhub(userId)
+		local hash = hashUserId(userId)
+		return hash ~= nil and stickyDetected[hash] == true
+	end
+
+	-- other maxhub/beta members blend in as "Clean" so members stay private from each
+	-- other; only the local player ever sees their own real detected status.
+	local function applyStatus(row, userId)
+		if isUsingMaxhub(userId) then
+			row.Status.Text = "USING MAXHUB"
+			row.Status.TextColor3 = detectedColor
+		else
+			row.Status.Text = "Clean"
+			row.Status.TextColor3 = cleanColor
+		end
+	end
+
+	local function loadThumbnail(image, userId)
+		task.spawn(function()
+			local ok, content = pcall(function()
+				return Players:GetUserThumbnailAsync(
+					userId,
+					Enum.ThumbnailType.HeadShot,
+					Enum.ThumbnailSize.Size48x48
+				)
+			end)
+
+			if ok and content then
+				image.Image = content
+			end
+		end)
+	end
+
+	local function teleportTo(player)
+		pcall(function()
+			local character = localPlayer.Character
+			local target = player.Character
+
+			if character and target then
+				local root = character:FindFirstChild("HumanoidRootPart")
+				local targetRoot = target:FindFirstChild("HumanoidRootPart")
+
+				if root and targetRoot then
+					root.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 4)
+				end
+			end
+		end)
+	end
+
+	local function toggleSpectate(player)
+		pcall(function()
+			local camera = Workspace.CurrentCamera
+
+			if spectating == player then
+				local character = localPlayer.Character
+				local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+
+				if humanoid then
+					camera.CameraSubject = humanoid
+				end
+
+				spectating = nil
+			else
+				local target = player.Character
+				local humanoid = target and target:FindFirstChildOfClass("Humanoid")
+
+				if humanoid then
+					camera.CameraSubject = humanoid
+					spectating = player
+				end
+			end
+		end)
+	end
+
+	local function setRowOpen(row, state)
+		row.isOpen = state
+
+		TweenService:Create(row.Frame, TweenInfo.new(0.18, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+			Size = UDim2.new(1, 0, 0, state and expandedHeight or collapsedHeight),
+		}):Play()
+
+		TweenService:Create(row.Chevron, TweenInfo.new(0.18, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+			Rotation = state and 180 or 0,
+		}):Play()
+	end
+
+	local function toggleRow(row)
+		if currentOpen and currentOpen ~= row then
+			setRowOpen(currentOpen, false)
+		end
+
+		setRowOpen(row, not row.isOpen)
+		currentOpen = row.isOpen and row or nil
+	end
+
+	local function createRow(player)
+		layoutOrder += 1
+
+		local Row = Instance.new("Frame")
+		Row.Name = "PlayerRow"
+		Row.ClipsDescendants = true
+		Row.Size = UDim2.new(1, 0, 0, collapsedHeight)
+		Row.BackgroundColor3 = Theme.SecondaryBackgroundColor
+		Row.BackgroundTransparency = 0.35
+		Row.BorderSizePixel = 0
+		Row.LayoutOrder = layoutOrder
+		Row.Parent = Container
+
+		local RowCorner = Instance.new("UICorner")
+		RowCorner.CornerRadius = UDim.new(0, 6)
+		RowCorner.Parent = Row
+
+		local Avatar = Instance.new("ImageLabel")
+		Avatar.Name = "Avatar"
+		Avatar.AnchorPoint = Vector2.new(0, 0.5)
+		Avatar.Position = UDim2.new(0, 8, 0, 23)
+		Avatar.Size = UDim2.new(0, 34, 0, 34)
+		Avatar.BackgroundTransparency = 1
+		Avatar.BorderSizePixel = 0
+		Avatar.ScaleType = Enum.ScaleType.Fit
+		Avatar.Parent = Row
+
+		local AvatarCorner = Instance.new("UICorner")
+		AvatarCorner.CornerRadius = UDim.new(1, 0)
+		AvatarCorner.Parent = Avatar
+
+		local AvatarStroke = Instance.new("UIStroke")
+		AvatarStroke.Thickness = 1
+		AvatarStroke.Transparency = 0.4
+		AvatarStroke.Color = Theme.PrimaryColor
+		AvatarStroke.Parent = Avatar
+
+		local DisplayName = Instance.new("TextLabel")
+		DisplayName.Name = "DisplayName"
+		DisplayName.BackgroundTransparency = 1
+		DisplayName.Position = UDim2.new(0, 52, 0, 7)
+		DisplayName.Size = UDim2.new(1, -210, 0, 18)
+		DisplayName.Font = Enum.Font.GothamSemibold
+		DisplayName.TextSize = 14
+		DisplayName.TextXAlignment = Enum.TextXAlignment.Left
+		DisplayName.TextColor3 = Theme.PrimaryTextColor
+		DisplayName.Text = player.DisplayName
+		DisplayName.Parent = Row
+
+		local Username = Instance.new("TextLabel")
+		Username.Name = "Username"
+		Username.BackgroundTransparency = 1
+		Username.Position = UDim2.new(0, 52, 0, 24)
+		Username.Size = UDim2.new(1, -210, 0, 15)
+		Username.Font = Enum.Font.Gotham
+		Username.TextSize = 12
+		Username.TextXAlignment = Enum.TextXAlignment.Left
+		Username.TextColor3 = Theme.SecondaryTextColor
+		Username.Text = "@" .. player.Name
+		Username.Parent = Row
+
+		local Status = Instance.new("TextLabel")
+		Status.Name = "Status"
+		Status.AnchorPoint = Vector2.new(1, 0.5)
+		Status.BackgroundTransparency = 1
+		Status.Position = UDim2.new(1, -32, 0, 23)
+		Status.Size = UDim2.new(0, 130, 0, 18)
+		Status.Font = Enum.Font.GothamBold
+		Status.TextSize = 13
+		Status.TextXAlignment = Enum.TextXAlignment.Right
+		Status.TextColor3 = Theme.SecondaryTextColor
+		Status.Text = "..."
+		Status.Parent = Row
+
+		local Chevron = Instance.new("ImageLabel")
+		Chevron.Name = "Chevron"
+		Chevron.AnchorPoint = Vector2.new(1, 0.5)
+		Chevron.BackgroundTransparency = 1
+		Chevron.Position = UDim2.new(1, -12, 0, 23)
+		Chevron.Size = UDim2.new(0, 16, 0, 16)
+		Chevron.Image = "rbxassetid://10709767827"
+		Chevron.ImageColor3 = Theme.SecondaryTextColor
+		Chevron.Parent = Row
+
+		local Toggle = Instance.new("TextButton")
+		Toggle.Name = "Toggle"
+		Toggle.AutoButtonColor = false
+		Toggle.BackgroundTransparency = 1
+		Toggle.Text = ""
+		Toggle.Position = UDim2.new(0, 0, 0, 0)
+		Toggle.Size = UDim2.new(1, 0, 0, collapsedHeight)
+		Toggle.Parent = Row
+
+		local Actions = Instance.new("Frame")
+		Actions.Name = "Actions"
+		Actions.BackgroundTransparency = 1
+		Actions.Position = UDim2.new(0, 0, 0, 50)
+		Actions.Size = UDim2.new(1, 0, 0, 30)
+		Actions.Parent = Row
+
+		local function makeActionButton(text, position)
+			local Action = Instance.new("TextButton")
+			Action.Name = text
+			Action.AutoButtonColor = false
+			Action.BackgroundColor3 = Theme.PrimaryBackgroundColor
+			Action.BorderSizePixel = 0
+			Action.Position = position
+			Action.Size = UDim2.new(0.5, -14, 1, 0)
+			Action.Font = Enum.Font.GothamSemibold
+			Action.TextSize = 13
+			Action.TextColor3 = Theme.PrimaryTextColor
+			Action.Text = text
+			Action.Parent = Actions
+
+			local ActionCorner = Instance.new("UICorner")
+			ActionCorner.CornerRadius = UDim.new(0, 6)
+			ActionCorner.Parent = Action
+
+			Action.MouseEnter:Connect(function()
+				TweenService:Create(Action, TweenInfo.new(0.12), { BackgroundColor3 = Theme.PrimaryColor }):Play()
+			end)
+
+			Action.MouseLeave:Connect(function()
+				TweenService:Create(Action, TweenInfo.new(0.12), { BackgroundColor3 = Theme.PrimaryBackgroundColor }):Play()
+			end)
+
+			Theme:registerToObjects({
+				{ object = Action, property = "TextColor3", theme = { "PrimaryTextColor" } },
+			})
+
+			return Action
+		end
+
+		local TeleportButton = makeActionButton("Teleport", UDim2.new(0, 10, 0, 0))
+		local SpectateButton = makeActionButton("Spectate", UDim2.new(0.5, 4, 0, 0))
+
+		TeleportButton.MouseButton1Click:Connect(function()
+			teleportTo(player)
+		end)
+
+		SpectateButton.MouseButton1Click:Connect(function()
+			toggleSpectate(player)
+			SpectateButton.Text = (spectating == player) and "Stop Spectate" or "Spectate"
+		end)
+
+		Theme:registerToObjects({
+			{ object = Row, property = "BackgroundColor3", theme = { "SecondaryBackgroundColor" } },
+			{ object = AvatarStroke, property = "Color", theme = { "PrimaryColor" } },
+			{ object = DisplayName, property = "TextColor3", theme = { "PrimaryTextColor" } },
+			{ object = Username, property = "TextColor3", theme = { "SecondaryTextColor" } },
+			{ object = Chevron, property = "ImageColor3", theme = { "SecondaryTextColor" } },
+		})
+
+		local row = {
+			Frame = Row,
+			Status = Status,
+			Chevron = Chevron,
+			player = player,
+			isOpen = false,
+		}
+		rows[player.UserId] = row
+
+		Toggle.MouseButton1Click:Connect(function()
+			toggleRow(row)
+		end)
+
+		loadThumbnail(Avatar, player.UserId)
+		applyStatus(row, player.UserId)
+	end
+
+	local function removeRow(userId)
+		local row = rows[userId]
+
+		if row then
+			if currentOpen == row then
+				currentOpen = nil
+			end
+
+			pcall(function()
+				row.Frame:Destroy()
+			end)
+			rows[userId] = nil
+		end
+	end
+
+	local function refreshAllStatuses()
+		for userId, row in pairs(rows) do
+			applyStatus(row, userId)
+		end
+	end
+
+	local function rebuildList()
+		currentOpen = nil
+
+		for userId in pairs(rows) do
+			pcall(function()
+				rows[userId].Frame:Destroy()
+			end)
+			rows[userId] = nil
+		end
+
+		layoutOrder = 1
+		refreshHashSet()
+
+		for _, player in ipairs(Players:GetPlayers()) do
+			createRow(player)
+		end
+	end
+
+	-- refresh button
+	local RefreshButton = Instance.new("TextButton")
+	RefreshButton.Name = "RefreshButton"
+	RefreshButton.AutoButtonColor = false
+	RefreshButton.LayoutOrder = 1
+	RefreshButton.Size = UDim2.new(1, 0, 0, 34)
+	RefreshButton.BackgroundColor3 = Theme.SecondaryBackgroundColor
+	RefreshButton.BackgroundTransparency = 0.35
+	RefreshButton.BorderSizePixel = 0
+	RefreshButton.Font = Enum.Font.GothamSemibold
+	RefreshButton.TextSize = 14
+	RefreshButton.TextColor3 = Theme.PrimaryTextColor
+	RefreshButton.Text = "Refresh"
+	RefreshButton.Parent = Container
+
+	local RefreshCorner = Instance.new("UICorner")
+	RefreshCorner.CornerRadius = UDim.new(0, 6)
+	RefreshCorner.Parent = RefreshButton
+
+	RefreshButton.MouseEnter:Connect(function()
+		TweenService:Create(RefreshButton, TweenInfo.new(0.12), { BackgroundColor3 = Theme.PrimaryColor }):Play()
+	end)
+
+	RefreshButton.MouseLeave:Connect(function()
+		TweenService:Create(RefreshButton, TweenInfo.new(0.12), { BackgroundColor3 = Theme.SecondaryBackgroundColor }):Play()
+	end)
+
+	Theme:registerToObjects({
+		{ object = RefreshButton, property = "BackgroundColor3", theme = { "SecondaryBackgroundColor" } },
+		{ object = RefreshButton, property = "TextColor3", theme = { "PrimaryTextColor" } },
+	})
+
+	local refreshDebounce = false
+	RefreshButton.MouseButton1Click:Connect(function()
+		if refreshDebounce then
+			return
+		end
+
+		refreshDebounce = true
+		RefreshButton.Text = "Refreshing..."
+
+		rebuildList()
+
+		RefreshButton.Text = "Refresh"
+		task.wait(0.5)
+		refreshDebounce = false
+	end)
+
+	-- initial population
+	rebuildList()
+
+	-- connections
+	table.insert(Connections, Players.PlayerAdded:Connect(function(player)
+		task.wait(0.4)
+
+		if not rows[player.UserId] then
+			createRow(player)
+		end
+	end))
+
+	table.insert(Connections, Players.PlayerRemoving:Connect(function(player)
+		removeRow(player.UserId)
+	end))
+
+	-- refresh loop: back off to a quick retry on failure (covers cold-starts / transient
+	-- drops) instead of waiting a full cycle and showing stale "Clean" rows
+	task.spawn(function()
+		while Container and Container.Parent do
+			if refreshHashSet() then
+				refreshAllStatuses()
+				task.wait(refreshInterval)
+			else
+				task.wait(5)
+			end
+		end
+	end)
+end
+
 function Library:createManager(options: table)
 	Utility:validateOptions(options, {
 		folderName = { Default = "Leny", ExpectedType = "string" },
@@ -2126,7 +2588,7 @@ function Library:createManager(options: table)
 		return options.apiBaseUrl .. path
 	end
 
-	local function getHeader(headers: table?, headerName: string)
+	local function getHeader(headers, headerName: string)
 		for key, value in pairs(headers or {}) do
 			if string.lower(tostring(key)) == string.lower(headerName) then
 				return value
@@ -2136,7 +2598,7 @@ function Library:createManager(options: table)
 		return nil
 	end
 
-	local function requestApi(method: string, path: string, body: table?)
+	local function requestApi(method: string, path: string, body)
 		local requestFn = getRequestFunction()
 		if not requestFn then
 			return nil, "No supported request function found (request/http_request/syn.request)."
@@ -2750,7 +3212,7 @@ function Library:createManager(options: table)
 		return string.match(code, "^[0-9A-Za-z][0-9A-Za-z][0-9A-Za-z][0-9A-Za-z][0-9A-Za-z]$") ~= nil
 	end
 
-	local function notifyApiError(statusCode: number, isExport: boolean, responseHeaders: table?)
+	local function notifyApiError(statusCode: number, isExport: boolean, responseHeaders)
 		if statusCode == 400 then
 			Library:notify({ title = "Config API", text = "Invalid request data.", duration = 4 })
 			return
