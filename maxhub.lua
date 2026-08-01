@@ -8,34 +8,54 @@ local TextService = game:GetService("TextService")
 local UserInputService = game:GetService("UserInputService")
 local GuiService = game:GetService("GuiService")
 
+local UI_THREAD_IDENTITY = 8
 local isMobile = UserInputService.TouchEnabled
+local bootstrapThreadIdentity = nil
+local protectedUiCallbacks = setmetatable({}, { __mode = "k" })
 
--- game:GetObjects is identity gated -- at identity 2 it is not even a member of the
--- DataModel, and at identity 5 it lacks the LoadLocalAsset capability. A game script that
--- lowers identity to require RobloxScript modules and then errors before restoring it
--- leaves this thread at 2, and the asset load fails. Some executors raise there; others
--- hand back an error STRING inside the table, which used to surface as the baffling
--- "attempt to index string with 'Enabled'" on the next line.
---
--- So: elevate for the load, always restore, and fail with a message that says what
--- actually went wrong.
-local ScreenGui = (function()
-	local previousIdentity
-	if getthreadidentity and setthreadidentity then
-		local ok, current = pcall(getthreadidentity)
-		if ok then
-			previousIdentity = current
-			pcall(setthreadidentity, 8)
-		end
+local function callWithUiIdentity(callback, ...)
+	if type(getthreadidentity) ~= "function" or type(setthreadidentity) ~= "function" then
+		return callback(...)
 	end
 
+	local identityOk, previousIdentity = pcall(getthreadidentity)
+	if not identityOk then
+		return callback(...)
+	end
+
+	pcall(setthreadidentity, UI_THREAD_IDENTITY)
+	local results = table.pack(pcall(callback, ...))
+	pcall(setthreadidentity, previousIdentity)
+	if not results[1] then
+		error(results[2], 0)
+	end
+	return table.unpack(results, 2, results.n)
+end
+
+local function protectUiCallback(callback)
+	if protectedUiCallbacks[callback] then
+		return callback
+	end
+
+	local protectedCallback = function(...)
+		return callWithUiIdentity(callback, ...)
+	end
+	protectedUiCallbacks[protectedCallback] = true
+	return protectedCallback
+end
+
+if type(getthreadidentity) == "function" and type(setthreadidentity) == "function" then
+	local identityOk, currentIdentity = pcall(getthreadidentity)
+	if identityOk then
+		bootstrapThreadIdentity = currentIdentity
+		pcall(setthreadidentity, UI_THREAD_IDENTITY)
+	end
+end
+
+local ScreenGui = (function()
 	local ok, objects = pcall(function()
 		return game:GetObjects("rbxassetid://99852798675591")
 	end)
-
-	if previousIdentity then
-		pcall(setthreadidentity, previousIdentity)
-	end
 
 	if ok and type(objects) == "table" and typeof(objects[1]) == "Instance" then
 		return objects[1]
@@ -3274,7 +3294,7 @@ function Library:ToggleUI(state)
 end
 
 function Library:loadBeta(options: table)
-	return 
+	return self:createManager(options)
 end
 
 function Library:createManager(options: table)
@@ -4119,7 +4139,7 @@ function Library:createManager(options: table)
 	if options.apiBaseUrl ~= "" then
 		local Sharing = ConfigPage:createSection({ text = "Imports", position = "Right" })
 		importCode = Sharing:createTextBox({
-			text = "Import Code",
+			text = "Import Share Code",
 			tooltip = "Paste a 5-character share code here, then press Import Settings to load that config.",
 		})
 
@@ -4485,5 +4505,76 @@ task.spawn(function()
 		end
 	end
 end)
+
+local identityProtectedMethods = {
+	"createTooltip",
+	"cancelTooltipTweens",
+	"showTooltip",
+	"hideTooltip",
+	"forceHideTooltip",
+	"playIntro",
+	"new",
+	"createAddons",
+	"destroy",
+	"createLabel",
+	"createTab",
+	"createSubTab",
+	"createSection",
+	"getSectionLayout",
+	"applySectionLayout",
+	"createToggle",
+	"createSlider",
+	"createPicker",
+	"createDropdown",
+	"createKeybind",
+	"createButton",
+	"createTextBox",
+	"notify",
+	"ToggleUI",
+	"loadBeta",
+	"createManager",
+}
+
+local function protectFlagMethods()
+	for _, category in pairs(Library.Flags) do
+		for _, flag in pairs(category) do
+			if type(flag) == "table" then
+				for key, value in pairs(flag) do
+					if type(value) == "function" then
+						flag[key] = protectUiCallback(value)
+					end
+				end
+			end
+		end
+	end
+end
+
+local function protectReturnedMethods(value)
+	if type(value) ~= "table" or value == Library then
+		return
+	end
+
+	for key, method in pairs(value) do
+		if type(method) == "function" then
+			value[key] = protectUiCallback(method)
+		end
+	end
+end
+
+for _, methodName in identityProtectedMethods do
+	local originalMethod = Library[methodName]
+	Library[methodName] = function(...)
+		local results = table.pack(callWithUiIdentity(originalMethod, ...))
+		protectFlagMethods()
+		for index = 1, results.n do
+			protectReturnedMethods(results[index])
+		end
+		return table.unpack(results, 1, results.n)
+	end
+end
+
+if bootstrapThreadIdentity ~= nil then
+	pcall(setthreadidentity, bootstrapThreadIdentity)
+end
 
 return Library
