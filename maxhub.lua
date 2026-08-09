@@ -59,7 +59,11 @@ ScreenGui.Enabled = false
 if RunService:IsStudio() then
 	ScreenGui.Parent = game.StarterGui
 else
-	ScreenGui.Parent = cloneref(game.CoreGui)
+	local parentSuccess, hiddenUi = pcall(gethui)
+	if not parentSuccess or typeof(hiddenUi) ~= "Instance" then
+		error("MaxHub UI: could not access the executor UI container", 0)
+	end
+	ScreenGui.Parent = hiddenUi
 end
 
 local Library = {
@@ -1743,7 +1747,8 @@ function Library:createSection(options: table)
 	Section.GroupTransparency = 0
 	Section.Size = SectionFrame.Size
 	Section.Visible = true
-	Section.Parent = self[options.position]
+	local sectionParent = options.position == "Single" and self.Left or self[options.position]
+	Section.Parent = sectionParent
 
 	SectionFrame.Name = "Content"
 	SectionFrame.AnchorPoint = Vector2.zero
