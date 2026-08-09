@@ -1031,14 +1031,13 @@ function Library.new(options)
 	Library.Theme.Line = options.Line
 	Library.Title = options.title
 
-	setMouseCursorVisibility(true)
-
 	-- Keep the UI hidden while the intro plays so it never flashes on screen while the
 	-- game script is still building tabs behind it; the reveal enables it at the end.
 	ScreenGui.Enabled = false
 
 	-- Intro: spinning 3D model, then the window scales up with a bounce
 	local function revealWindow()
+		setMouseCursorVisibility(true)
 		ScreenGui.Enabled = true
 		Glow.Size = UDim2.fromOffset(options.sizeX * 0.93, options.sizeY * 0.93)
 		Utility:tween(Glow, {
