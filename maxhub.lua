@@ -1,4 +1,33 @@
 --!nocheck
+if not LPH_OBFUSCATED then
+	cleardrawcache()
+	_G.Config = { ["Theme"] = "dark" }
+	Nord = loadstring(game:HttpGet("https://raw.githubusercontent.com/Grayy12/Fluxlib/main/Nord.lua"))()
+	LPH_JIT_MAX = LPH_JIT_MAX or function(...)
+		return ...
+	end
+	LPH_NO_VIRTUALIZE = LPH_NO_VIRTUALIZE or function(f)
+		return f
+	end
+	LPH_NO_UPVALUES = LPH_NO_UPVALUES or function(f)
+		return f
+	end
+	LRM_TotalExecutions = 99999
+	LRM_IsUserPremium = false
+	LRM_LinkedDiscordID = "Developer"
+	LRM_ScriptName = "deg"
+	LRM_UserNote = "hello"
+	LRM_Premium = false
+end
+
+if LRM_ScriptName == "Mainfile Maxhub Free" then
+	UserIsPoor = true
+else
+	UserIsPoor = false
+end
+
+-- Modules
+--!nocheck
 -- update!
 
 local TESTING = false
@@ -3274,7 +3303,7 @@ function Library:ToggleUI(state)
 end
 
 function Library:loadBeta(options: table)
-	reutrn self:createManager(options)
+	
 end
 
 function Library:createManager(options: table)
@@ -4486,4 +4515,3 @@ task.spawn(function()
 	end
 end)
 
-return Library
