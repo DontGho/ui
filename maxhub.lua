@@ -289,29 +289,67 @@ do
 end
 
 local mouseIconEnabled
-local mouseBehavior
 local mouseCaptured = false
+local modalButtons = setmetatable({}, { __mode = "k" })
+
+local function setModalControlsEnabled(enabled)
+	pcall(function()
+		local queue = { ScreenGui }
+		local index = 1
+
+		while index <= #queue do
+			local object = queue[index]
+			index += 1
+
+			if object:IsA("GuiButton") then
+				if enabled then
+					if modalButtons[object] then
+						object.Modal = true
+					end
+				elseif object.Modal then
+					modalButtons[object] = true
+					object.Modal = false
+				end
+			end
+
+			for _, child in ipairs(object:GetChildren()) do
+				queue[#queue + 1] = child
+			end
+		end
+	end)
+end
 
 local function setMouseCursorVisibility(visible)
 	pcall(function()
 		if visible then
 			if not mouseCaptured then
 				mouseIconEnabled = UserInputService.MouseIconEnabled
-				mouseBehavior = UserInputService.MouseBehavior
 				mouseCaptured = true
 			end
 
 			UserInputService.MouseIconEnabled = true
-			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
 		elseif mouseCaptured then
 			local iconEnabled = mouseIconEnabled
-			local behavior = mouseBehavior
+			local desiredMouseBehavior = UserInputService.MouseBehavior
+
+			if desiredMouseBehavior ~= Enum.MouseBehavior.Default then
+				iconEnabled = false
+			end
 
 			mouseIconEnabled = nil
-			mouseBehavior = nil
 			mouseCaptured = false
 			UserInputService.MouseIconEnabled = iconEnabled
-			UserInputService.MouseBehavior = behavior
+
+			if desiredMouseBehavior ~= Enum.MouseBehavior.Default then
+				UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+				task.defer(function()
+					pcall(function()
+						if not ScreenGui.Parent or not ScreenGui.Enabled then
+							UserInputService.MouseBehavior = desiredMouseBehavior
+						end
+					end)
+				end)
+			end
 		end
 	end)
 end
@@ -1242,13 +1280,13 @@ function Library:createAddons(text, imageButton, scrollingFrame, additionalAddon
 end
 
 function Library:destroy()
-	setMouseCursorVisibility(false)
-
 	for _, rbxSignals in ipairs(Connections) do
 		rbxSignals:Disconnect()
 	end
 	task.wait(0.1)
+	setModalControlsEnabled(false)
 	ScreenGui:Destroy()
+	setMouseCursorVisibility(false)
 end
 
 function Library:createLabel(options: table)
@@ -3245,9 +3283,9 @@ function Library:ToggleUI(state)
 		targetVisible = not ScreenGui.Enabled
 	end
 
-	setMouseCursorVisibility(targetVisible)
-
 	if targetVisible then
+		setModalControlsEnabled(true)
+		setMouseCursorVisibility(true)
 		Library._toggling = true
 		ScreenGui.Enabled = true
 		Glow.Size = UDim2.fromOffset(Library.sizeX * 0.93, Library.sizeY * 0.93)
@@ -3273,6 +3311,8 @@ function Library:ToggleUI(state)
 			ScreenGui.Enabled = false
 			Glow.Size = UDim2.fromOffset(Library.sizeX, Library.sizeY)
 			Library._toggling = false
+			setModalControlsEnabled(false)
+			setMouseCursorVisibility(false)
 		end)
 	end
 end
