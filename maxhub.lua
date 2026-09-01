@@ -128,6 +128,80 @@ local Connections = Library.Connections
 local Exclusions = Library.Exclusions
 
 local Assets = ScreenGui.Assets
+local MOBILE_ELEMENT_SCALE = 0.82
+
+local function getMobileOffset(offset)
+	if not isMobile or offset == 0 then
+		return offset
+	end
+
+	return math.round(offset * MOBILE_ELEMENT_SCALE)
+end
+
+local function getMobileUDim(value)
+	return UDim.new(value.Scale, getMobileOffset(value.Offset))
+end
+
+local function getMobileUDim2(value)
+	return UDim2.new(
+		value.X.Scale,
+		getMobileOffset(value.X.Offset),
+		value.Y.Scale,
+		getMobileOffset(value.Y.Offset)
+	)
+end
+
+local function applyMobileElementSizing(root)
+	if not isMobile then
+		return
+	end
+
+	local queue = { root }
+	local queueIndex = 1
+
+	while queueIndex <= #queue do
+		local object = queue[queueIndex]
+		queueIndex += 1
+
+		if object:IsA("GuiObject") then
+			object.Size = getMobileUDim2(object.Size)
+			object.Position = getMobileUDim2(object.Position)
+
+			if object:IsA("TextLabel") or object:IsA("TextButton") or object:IsA("TextBox") then
+				object.TextSize = math.min(object.TextSize, math.max(10, getMobileOffset(object.TextSize)))
+			end
+
+			if object:IsA("ScrollingFrame") then
+				object.CanvasSize = getMobileUDim2(object.CanvasSize)
+
+				if object.ScrollBarThickness > 0 then
+					object.ScrollBarThickness = math.max(2, getMobileOffset(object.ScrollBarThickness))
+				end
+			end
+		elseif object:IsA("UIListLayout") then
+			object.Padding = getMobileUDim(object.Padding)
+		elseif object:IsA("UIGridLayout") then
+			object.CellPadding = getMobileUDim2(object.CellPadding)
+			object.CellSize = getMobileUDim2(object.CellSize)
+		elseif object:IsA("UIPadding") then
+			object.PaddingTop = getMobileUDim(object.PaddingTop)
+			object.PaddingBottom = getMobileUDim(object.PaddingBottom)
+			object.PaddingLeft = getMobileUDim(object.PaddingLeft)
+			object.PaddingRight = getMobileUDim(object.PaddingRight)
+		elseif object:IsA("UICorner") then
+			object.CornerRadius = getMobileUDim(object.CornerRadius)
+		end
+
+		for _, child in ipairs(object:GetChildren()) do
+			table.insert(queue, child)
+		end
+	end
+end
+
+do
+	applyMobileElementSizing(Assets)
+end
+
 local Modules = {
 	Dropdown = loadstring(
 		game:HttpGet(
@@ -366,6 +440,10 @@ local Filler = Tabs.Filler
 local Resize = Filler.Resize
 local Line = Filler.Line
 local Title = Tabs.Frame.Title
+
+do
+	applyMobileElementSizing(Tabs)
+end
 
 local AddonBackdrop = Instance.new("TextButton")
 AddonBackdrop.Name = "AddonBackdrop"
@@ -725,7 +803,7 @@ end)
 
 Glow:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
 	for _, data in ipairs(Library.SectionFolder.Right) do
-		if Glow.AbsoluteSize.X <= 660 then
+		if Glow.AbsoluteSize.X <= getMobileOffset(660) then
 			data.folders.Right.Visible = false
 			data.folders.Left.Size = UDim2.fromScale(1, 1)
 			data.object.Parent = data.folders.Left
@@ -737,7 +815,7 @@ Glow:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
 	end
 
 	for _, data in ipairs(Library.SectionFolder.Left) do
-		if Glow.AbsoluteSize.X <= 660 then
+		if Glow.AbsoluteSize.X <= getMobileOffset(660) then
 			data.folders.Right.Visible = false
 			data.folders.Left.Size = UDim2.fromScale(1, 1)
 		else
@@ -757,7 +835,7 @@ local LOGO_MATERIAL = Enum.Material.Glass
 local OLD_LOGO_IMAGE = "rbxassetid://110774279816088"
 
 Library.LogoSpinSpeed = 0.5
-Library.LogoSize = 39
+Library.LogoSize = getMobileOffset(39)
 Library.LogoColor = Color3.fromRGB(0, 98, 238)
 Library.LogoColorEffect = true
 Library.LogoRainbow = false
@@ -1055,7 +1133,8 @@ function Library.new(options)
 		Line = { Default = Library.Theme.Line, ExpectedType = "Color3" },
 	})
 
-	Library.tabSizeX = options.tabSizeX >= 200 and 220 or math.clamp(options.tabSizeX, 72, 240)
+	local tabSizeX = options.tabSizeX >= 200 and 220 or math.clamp(options.tabSizeX, 72, 240)
+	Library.tabSizeX = math.max(72, getMobileOffset(tabSizeX))
 	Library.sizeX = options.sizeX
 	Library.sizeY = options.sizeY
 	Library.Theme.PrimaryBackgroundColor = options.PrimaryBackgroundColor
@@ -1198,8 +1277,8 @@ function Library:createAddons(text, imageButton, scrollingFrame, additionalAddon
 		ScrollingFrame = { Value = scrollingFrame, ExpectedType = "Instance" },
 		Popups = { Value = Popups, ExpectedType = "Instance" },
 		Inner = { Value = Inner, ExpectedType = "Instance" },
-		PositionPadding = { Value = 18 + 7, ExpectedType = "number" },
-		SizePadding = { Value = 30, ExpectedType = "number" },
+		PositionPadding = { Value = getMobileOffset(18 + 7), ExpectedType = "number" },
+		SizePadding = { Value = getMobileOffset(30), ExpectedType = "number" },
 	})
 
 	Theme:registerToObjects({
@@ -1495,6 +1574,39 @@ function Library:createTab(options: table)
 
 	local SubTabs = Page.SubTabs
 	local SubLine = SubTabs.Line
+	local SubTabFrame = SubTabs.Frame
+	local SubTabScrollingFrame = SubTabFrame.ScrollingFrame
+	local SubTabMoveable = SubTabFrame.Moveable
+	local SubTabLayout = SubTabScrollingFrame.UIListLayout
+
+	local function updateSubTabCanvas()
+		local contentWidth = SubTabLayout.AbsoluteContentSize.X
+		local canvasSize = UDim2.fromOffset(contentWidth, 0)
+		SubTabScrollingFrame.CanvasSize = canvasSize
+		SubTabMoveable.CanvasSize = canvasSize
+
+		local maxCanvasX = math.max(contentWidth - SubTabScrollingFrame.AbsoluteSize.X, 0)
+		local canvasX = math.clamp(SubTabScrollingFrame.CanvasPosition.X, 0, maxCanvasX)
+		SubTabScrollingFrame.CanvasPosition = Vector2.new(canvasX, 0)
+		SubTabMoveable.CanvasPosition = Vector2.new(canvasX, 0)
+	end
+
+	SubTabScrollingFrame.Active = true
+	SubTabScrollingFrame.ScrollingEnabled = true
+	SubTabScrollingFrame.ScrollingDirection = Enum.ScrollingDirection.X
+	SubTabScrollingFrame.ElasticBehavior = Enum.ElasticBehavior.WhenScrollable
+	SubTabScrollingFrame.ScrollBarThickness = isMobile and 3 or SubTabScrollingFrame.ScrollBarThickness
+	SubTabMoveable.Active = false
+	SubTabMoveable.Selectable = false
+	SubTabMoveable.ScrollingEnabled = false
+	SubTabMoveable.ScrollBarThickness = 0
+
+	table.insert(Connections, SubTabLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateSubTabCanvas))
+	table.insert(Connections, SubTabScrollingFrame:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateSubTabCanvas))
+	table.insert(Connections, SubTabScrollingFrame:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
+		SubTabMoveable.CanvasPosition = Vector2.new(SubTabScrollingFrame.CanvasPosition.X, 0)
+	end))
+	task.defer(updateSubTabCanvas)
 
 	local function tweenTabAssets(
 		tab: Instance,
@@ -1646,8 +1758,12 @@ function Library:createSubTab(options: table)
 	SubTab.TextColor3 = Theme.SecondaryTextColor
 	SubTab.Parent = ScrollingFrame
 
-	SubTab.Size =
-		UDim2.new(0, TextService:GetTextSize(options.text, 15, Enum.Font.MontserratMedium, SubTab.AbsoluteSize).X, 1, 0)
+	SubTab.Size = UDim2.new(
+		0,
+		TextService:GetTextSize(options.text, SubTab.TextSize, Enum.Font.MontserratMedium, SubTab.AbsoluteSize).X,
+		1,
+		0
+	)
 
 	local subTabIndex, subTabPosition = 0, 0
 
@@ -1685,7 +1801,7 @@ function Library:createSubTab(options: table)
 				Utility:tween(underline, {
 					BackgroundColor3 = Theme.PrimaryColor,
 					Position = UDim2.new(0, subTabPosition, 1, 0),
-					Size = UDim2.new(0, subTab.Size.X.Offset, 0, 2),
+					Size = UDim2.new(0, subTab.Size.X.Offset, 0, getMobileOffset(2)),
 				}, 0.28, "Quint", "Out"):Play()
 			end
 		end
@@ -1795,7 +1911,11 @@ function Library:createSection(options: table)
 	SectionFrame.Parent = Section
 
 	local screenSize = workspace.CurrentCamera.ViewportSize
-	if self.sectionStyle == "Single" or (screenSize.X <= 740 and screenSize.Y <= 590) or self.sizeX <= 660 then
+	if
+		self.sectionStyle == "Single"
+		or (screenSize.X <= getMobileOffset(740) and screenSize.Y <= getMobileOffset(590))
+		or self.sizeX <= getMobileOffset(660)
+	then
 		if options.position == "Right" then
 			table.insert(
 				self.SectionFolder.Right,
@@ -1844,7 +1964,7 @@ function Library:createSection(options: table)
 	applySortOrder(self.Right)
 
 	Inner.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-		Section.Size = UDim2.new(1, 0, 0, Inner.UIListLayout.AbsoluteContentSize.Y + 28)
+		Section.Size = UDim2.new(1, 0, 0, Inner.UIListLayout.AbsoluteContentSize.Y + getMobileOffset(28))
 	end)
 
 	do
@@ -2127,10 +2247,14 @@ function Library:createSlider(options: table, parent, scrollingFrame)
 	local CurrentValueLabel = Circle.TextButton.CurrentValueLabel
 
 	local function tweenSliderInfoAssets(transparency: number)
-		local TextBoundsX = math.clamp(CurrentValueLabel.TextBounds.X + 14, 10, 200)
+		local TextBoundsX = math.clamp(
+			CurrentValueLabel.TextBounds.X + getMobileOffset(14),
+			getMobileOffset(10),
+			getMobileOffset(200)
+		)
 		local easing = transparency == 0 and "Back" or "Quart"
 		Utility:tween(CurrentValueLabel, {
-			Size = UDim2.fromOffset(TextBoundsX, 20),
+			Size = UDim2.fromOffset(TextBoundsX, getMobileOffset(20)),
 			BackgroundTransparency = transparency,
 			TextTransparency = transparency,
 		}, 0.2, easing, "Out"):Play()
@@ -2150,8 +2274,18 @@ function Library:createSlider(options: table, parent, scrollingFrame)
 
 		autoSizeTextBox = {
 			Value = function()
-				local TextBoundsX = math.clamp(TextLabel.TextBox.TextBounds.X + 14, 10, 200)
-				Utility:tween(TextLabel.TextBox, { Size = UDim2.fromOffset(TextBoundsX, 20) }, 0.2, "Quart", "Out")
+				local TextBoundsX = math.clamp(
+					TextLabel.TextBox.TextBounds.X + getMobileOffset(14),
+					getMobileOffset(10),
+					getMobileOffset(200)
+				)
+				Utility:tween(
+					TextLabel.TextBox,
+					{ Size = UDim2.fromOffset(TextBoundsX, getMobileOffset(20)) },
+					0.2,
+					"Quart",
+					"Out"
+				)
 					:Play()
 			end,
 			ExpectedType = "function",
@@ -2280,9 +2414,9 @@ function Library:createPicker(options: table, parent, scrollingFrame, isPickerBo
 		Popups = { Value = Popups, ExpectedType = "Instance" },
 		isPicker = { Value = isPickerBoolean, ExpectedType = "boolean" },
 		ScrollingFrame = { Value = scrollingFrame, ExpectedType = "Instance" },
-		PositionPadding = { Value = 18 + 7, ExpectedType = "number" },
+		PositionPadding = { Value = getMobileOffset(18 + 7), ExpectedType = "number" },
 		Connections = { Value = Connections, ExpectedType = "table" },
-		SizePadding = { Value = 14, ExpectedType = "number" },
+		SizePadding = { Value = getMobileOffset(14), ExpectedType = "number" },
 	})
 
 	local Popup = Modules.Popup.new(PopupContext)
@@ -2438,6 +2572,8 @@ function Library:createDropdown(options: table, parent, scrollingFrame)
 		or Dropdown:FindFirstAncestor("Section")
 	local listPortal
 	local listPortalVersion = 0
+	local dropButtonMaxHeight = getMobileOffset(164)
+	local dropdownMaxHeight = getMobileOffset(210)
 
 	local function getDropdownListSize(height)
 		if listPortal then
@@ -2617,11 +2753,15 @@ function Library:createDropdown(options: table, parent, scrollingFrame)
 			1,
 			0,
 			0,
-			math.clamp(DropButtons.UIListLayout.AbsoluteContentSize.Y + Inner.UIListLayout.Padding.Offset, 0, 164)
+			math.clamp(
+				DropButtons.UIListLayout.AbsoluteContentSize.Y + Inner.UIListLayout.Padding.Offset,
+				0,
+				dropButtonMaxHeight
+			)
 		)
 
 		if dropdownIsOpen then
-			local size = UDim2.new(0, 0, 0, math.clamp(Inner.UIListLayout.AbsoluteContentSize.Y, 0, 210))
+			local size = UDim2.new(0, 0, 0, math.clamp(Inner.UIListLayout.AbsoluteContentSize.Y, 0, dropdownMaxHeight))
 			Utility:tween(
 				List,
 				{ Size = getDropdownListSize(size.Y.Offset) },
@@ -2686,17 +2826,17 @@ function Library:createDropdown(options: table, parent, scrollingFrame)
 
 			Utility:tween(
 				List,
-				{ Size = getDropdownListSize(math.clamp(Inner.UIListLayout.AbsoluteContentSize.Y, 0, 210)) },
+				{ Size = getDropdownListSize(math.clamp(Inner.UIListLayout.AbsoluteContentSize.Y, 0, dropdownMaxHeight)) },
 				0.2,
 				"Quart",
 				"Out"
 			):Play()
 			table.insert(Library.DropdownSizes, {
 				object = Dropdown,
-				size = UDim2.new(0, 0, 0, math.clamp(Inner.UIListLayout.AbsoluteContentSize.Y, 0, 210)),
+				size = UDim2.new(0, 0, 0, math.clamp(Inner.UIListLayout.AbsoluteContentSize.Y, 0, dropdownMaxHeight)),
 			})
 			scrollingFrame.CanvasSize = scrollingFrame.CanvasSize
-				+ UDim2.new(0, 0, 0, math.clamp(Inner.UIListLayout.AbsoluteContentSize.Y, 0, 210))
+				+ UDim2.new(0, 0, 0, math.clamp(Inner.UIListLayout.AbsoluteContentSize.Y, 0, dropdownMaxHeight))
 			Library.ActiveDropdownClose = closeDropdownList
 		else
 			closeDropdownList()
@@ -2941,8 +3081,18 @@ function Library:createKeybind(options: table, parent, scrollingFrame)
 
 		autoSizeBackground = {
 			Value = function()
-				local TextBoundsX = math.clamp(TextButton.TextBounds.X + 14, 10, 200)
-				Utility:tween(TextButton.Parent, { Size = UDim2.fromOffset(TextBoundsX, 20) }, 0.2, "Quart", "Out")
+				local TextBoundsX = math.clamp(
+					TextButton.TextBounds.X + getMobileOffset(14),
+					getMobileOffset(10),
+					getMobileOffset(200)
+				)
+				Utility:tween(
+					TextButton.Parent,
+					{ Size = UDim2.fromOffset(TextBoundsX, getMobileOffset(20)) },
+					0.2,
+					"Quart",
+					"Out"
+				)
 					:Play()
 			end,
 			ExpectedType = "function",
@@ -3119,8 +3269,14 @@ function Library:createTextBox(options: table, parent, scrollingFrame)
 
 		autoSizeTextBox = {
 			Value = function()
-				local TextBoundsX = math.clamp(Box.TextBounds.X + 14, 0, 100)
-				Utility:tween(Box, { Size = UDim2.fromOffset(TextBoundsX, 20) }, 0.2, "Quart", "Out"):Play()
+				local TextBoundsX = math.clamp(Box.TextBounds.X + getMobileOffset(14), 0, getMobileOffset(100))
+				Utility:tween(
+					Box,
+					{ Size = UDim2.fromOffset(TextBoundsX, getMobileOffset(20)) },
+					0.2,
+					"Quart",
+					"Out"
+				):Play()
 			end,
 			ExpectedType = "function",
 		},
@@ -3318,7 +3474,7 @@ function Library:ToggleUI(state)
 end
 
 function Library:loadBeta(options: table)
-	
+
 end
 
 function Library:createManager(options: table)
